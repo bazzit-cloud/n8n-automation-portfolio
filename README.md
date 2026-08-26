@@ -1,27 +1,21 @@
-# 🚀 Proyecto 2: Sincronización Transaccional HubSpot ↔ PostgreSQL con Idempotencia y Observabilidad
+# 🚀 Portfolio de Automatización e Integración con n8n
 
-## 📖 Descripción del Problema
-El equipo de operaciones necesitaba sincronizar de forma desatendida los contactos generados en HubSpot con una base de datos relacional (PostgreSQL) para su posterior análisis y tratamiento interno, evitando la intervención manual y garantizando la integridad de los registros.
+¡Hola! Soy Automation & Integration Engineer especializado en la construcción de flujos de datos resilientes, automatización de procesos empresariales (RevOps/Operations) y aplicación práctica de Inteligencia Artificial (IA) sin sobreingeniería.
 
-## 🎯 Objetivo (Portfolio)
-Diseñar un pipeline de datos basado en *Polling* (Pull) que consulte periódicamente un CRM, valide la unicidad de cada registro para garantizar idempotencia, persista la información en PostgreSQL de forma resiliente y cuente con un sistema inteligente de enrutamiento de errores hacia Slack.
+Este repositorio documenta proyectos técnicos reales diseñados para resolver problemas de negocio, priorizando la fiabilidad, la idempotencia, el manejo de errores y la observabilidad.
 
-## 🏗 Arquitectura y Tecnologías
-* **Orquestador:** n8n
-* **Trigger:** Schedule Trigger (Cron job a intervalos regulares)
-* **Origen de Datos (CRM):** HubSpot API (HTTP Request)
-* **Base de Datos:** PostgreSQL (Upsert / Inserción segura)
-* **Observabilidad / Alertas:** Slack (vía Error Trigger global y nodo Switch)
+## 📂 Proyectos
 
-## ⚙️ Decisiones Técnicas Destacadas
-1. **Arquitectura Pull vs Push:** A diferencia del Proyecto 1 basado en Webhooks (eventos en tiempo real), este sistema utiliza un *Schedule Trigger* para consultar periódicamente la API de HubSpot, adaptándose a escenarios donde los webhooks del CRM no están disponibles o requieren sincronización programada.
-2. **Idempotencia y Prevención de Duplicados:** Para evitar que ejecuciones concurrentes o reintentos dupliquen filas en PostgreSQL, se utiliza el identificador único del contacto en HubSpot (`hubspot_id`) como clave de restricción (*upsert* o validación previa).
-3. **Resiliencia ante Fallos de Red:** Los nodos de integración con bases de datos están configurados con una política de reintentos controlados (*retries*) para absorber intermitencias temporales en la red o caídas breves del servidor de base de datos.
-4. **Enrutamiento Inteligente de Errores (Routing):** Un sistema centralizado de captura de errores analiza el nombre del workflow afectado mediante un nodo `Switch` y deriva la alerta específica al canal de Slack correspondiente (`#crm-hubspot`), evitando notificaciones genéricas.
+### 🔗 [Proyecto 1: Sistema Inteligente de Captación y Clasificación de Leads con IA](./Proyecto_1_Captacion_Leads.md)
+* **Objetivo:** Automatizar la recepción, validación y clasificación de leads desde formularios mediante un LLM (Gemini), asegurando la deduplicación y derivando alertas críticas a Slack ante fallos del sistema.
 
-## 🛡️ Seguridad
-* Aislamiento estricto de credenciales de HubSpot, conexión a base de datos (PostgreSQL) y tokens de Slack mediante el gestor seguro de n8n.
+### 🔄 [Proyecto 2: Sincronización Transaccional HubSpot ↔ PostgreSQL con Idempotencia](./Proyecto_2_HubSpot_Postgres.md)
+* **Objetivo:** Diseñar un pipeline de sincronización de datos periódico (Pull/Cron) entre un CRM y una base de datos relacional, garantizando idempotencia mediante claves únicas y observabilidad de errores.
 
-## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
-* **Limitación Actual:** Consultar todos los registros en cada intervalo puede saturar la API si el volumen de contactos crece exponencialmente.
-* **Mejora Propuesta:** Implementar paginación y filtrado por marcas de tiempo (*timestamp delta*) para sincronizar únicamente los registros modificados desde la última ejecución exitosa.
+## 🛠️ Stack Tecnológico
+* **Orquestador:** n8n (Self-hosted / Cloud)
+* **Integraciones:** APIs REST, Webhooks, HubSpot API, Google Sheets
+* **Bases de Datos:** PostgreSQL
+* **Inteligencia Artificial:** Google Gemini (Structured Output & Classification)
+* **Monitoreo y Alertas:** Slack (Error Triggers y enrutamiento inteligente por canales)
+* **Prácticas:** Idempotencia, gestión de reintentos, manejo tipado de errores, control de versiones..
