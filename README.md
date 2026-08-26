@@ -25,6 +25,3 @@ Diseñar un pipeline de datos basado en *Polling* (Pull) que consulte periódica
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** Consultar todos los registros en cada intervalo puede saturar la API si el volumen de contactos crece exponencialmente.
 * **Mejora Propuesta:** Implementar paginación y filtrado por marcas de tiempo (*timestamp delta*) para sincronizar únicamente los registros modificados desde la última ejecución exitosa.
-
-## 📸 Capturas de Pantalla
-*(Añade aquí una captura de tu workflow HubSpot-Postgres y otra del canal de Slack #crm-hubspot recibiendo la alerta)*
