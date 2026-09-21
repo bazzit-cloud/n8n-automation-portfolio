@@ -15,6 +15,9 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 
 ![Arquitectura del Proyecto 1](captura_1-proyecto-1.png)
 
+![Arquitectura del Proyecto 1](captura_3-proyecto-1.png)
+
+
 ## ⚙️ Decisiones Técnicas Destacadas
 1. **Deduplicación e Idempotencia:** Antes de insertar un nuevo registro, el workflow consulta la base de datos de Google Sheets (`Get Row`). Si el email ya existe, el lead es bloqueado mediante un nodo `IF` (Filtro Anti-Duplicados) para mantener la integridad de los datos.
 2. **LLM como Motor de Clasificación:** En lugar de usar IA para generar texto libre, se utiliza Gemini con un prompt estructurado para analizar la entrada del usuario y devolver una categorización estricta (ej. ALTO, MEDIO, BAJO), facilitando el enrutamiento posterior.
@@ -24,6 +27,9 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 * Las credenciales (OAuth2 para Google, API Keys para IA y Slack) están aisladas en el gestor de credenciales de n8n. No hay secretos *hardcodeados* en los nodos.
 
 ![Arquitectura del Proyecto 1](captura_2-proyecto-1.png)
+
+![Arquitectura del Proyecto 1](captura_4-proyecto-1.png)
+
 
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** Google Sheets no es ideal para grandes volúmenes de datos transaccionales ni búsquedas indexadas de alta velocidad.
