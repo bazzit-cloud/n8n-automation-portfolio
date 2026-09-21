@@ -14,6 +14,8 @@ Construir un pipeline de extracción estructurada que consulte periódicamente H
 * **Observabilidad:** Slack (Sistema de enrutamiento dinámico de errores)
 
 ![Arquitectura del pipeline](captura_1-proyecto-2.png)
+![Arquitectura del pipeline](captura_2-proyecto-2.png)
+![Arquitectura del pipeline](captura_3-proyecto-2.png)
 
 
 ## ⚙️ Decisiones Técnicas Destacadas
@@ -23,6 +25,12 @@ Construir un pipeline de extracción estructurada que consulte periódicamente H
 
 ## 🛡️ Seguridad
 * Las credenciales de acceso a la base de datos y los tokens de HubSpot están aislados en el gestor de credenciales nativo de n8n.
+
+![Arquitectura del pipeline](captura_4-proyecto-2.png)
+
+![Arquitectura del pipeline](captura_5-proyecto-2.png)
+
+
 
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** Si se produce una importación masiva en HubSpot, recuperar miles de contactos en una sola petición podría agotar la memoria del nodo o chocar contra el límite de la API.
