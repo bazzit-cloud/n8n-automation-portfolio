@@ -14,6 +14,10 @@ Construir un pipeline de ventas tolerante a fallos que reciba payloads de un CRM
 * **Lógica de Negocio:** Switch Node (Enrutamiento condicional)
 * **Canales de Salida:** API de Slack y API de Telegram
 
+![Arquitectura del pipeline](captura_2-proyecto-3.png)
+
+![Arquitectura del pipeline](captura_3-proyecto-3.png)
+
 ## ⚙️ Decisiones Técnicas Destacadas
 1. **Normalización de Datos (Defensive Programming):** Antes de evaluar cualquier regla de negocio, el payload entrante pasa por un proceso de tipado estricto. Esto previene errores comunes de coerción de tipos en JavaScript (ej. donde `null` se evalúa como `0`), garantizando que las condiciones matemáticas posteriores sean precisas.
 2. **Enrutamiento por Reglas de Negocio:** Se implementó una bifurcación clara utilizando un nodo `Switch`. Las oportunidades con valor igual o superior a 5.000€ se envían por Telegram para atención inmediata, mientras que el resto va al canal general de Slack.
@@ -22,9 +26,8 @@ Construir un pipeline de ventas tolerante a fallos que reciba payloads de un CRM
 ## 🛡️ Manejo de Errores
 El sistema no asume que la API de origen enviará datos perfectos. La combinación de normalización previa y la ruta de *Fallback* actúa como un escudo protector, asegurando que ningún lead se pierda por un error informático y aislando los registros problemáticos del flujo de ventas principal.
 
+![Arquitectura del pipeline](captura_4-proyecto-3.png)
+
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** El umbral de 5.000€ está "hardcodeado" (fijado manualmente) dentro del nodo Switch. Si el negocio decide cambiarlo, requiere un despliegue técnico.
 * **Mejora Propuesta:** Extraer las reglas de negocio a una tabla de configuración externa (ej. PostgreSQL o Airtable) y cachear esos valores en n8n al inicio de la ejecución, permitiendo a Operaciones cambiar los umbrales sin tocar el código.
-
-## 📸 Capturas de Pantalla
-*(Añade tus capturas de la arquitectura, la configuración del Switch y el manejo del Fallback aquí)*
