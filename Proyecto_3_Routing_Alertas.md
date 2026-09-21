@@ -6,6 +6,8 @@ El equipo de ventas necesitaba notificaciones en tiempo real sobre nuevas oportu
 ## 🎯 Objetivo (Portfolio)
 Construir un pipeline de ventas tolerante a fallos que reciba payloads de un CRM externo, normalice los tipos de datos y enrute las alertas de forma determinista hacia Slack (tratos estándar) o Telegram (tratos VIP). El sistema debe contar con una vía de escape (fallback) para capturar y auditar cualquier dato corrupto sin detener la ejecución.
 
+![Arquitectura del pipeline](captura_1-proyecto-3.png)
+
 ## 🏗 Arquitectura y Tecnologías
 * **Orquestador:** n8n
 * **Trigger:** Webhook (Recepción de payload en tiempo real)
