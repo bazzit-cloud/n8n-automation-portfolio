@@ -14,7 +14,7 @@ Este repositorio documenta proyectos técnicos reales diseñados para resolver p
 
 ### 🔀 [Proyecto 3: Enrutamiento Inteligente de Leads y Alertas Multicanal](./Proyecto_3_Routing_Alertas.md)
 * **Objetivo:** Construir un pipeline tolerante a fallos que normaliza payloads de un CRM, enruta alertas VIP a Telegram y estándar a Slack, e incluye una vía de escape (fallback) para auditar datos incompletos sin detener la ejecución.
-* 
+
 ## 🛠️ Stack Tecnológico
 * **Orquestador:** n8n (Self-hosted / Cloud)
 * **Integraciones:** APIs REST, Webhooks, HubSpot API, Google Sheets
