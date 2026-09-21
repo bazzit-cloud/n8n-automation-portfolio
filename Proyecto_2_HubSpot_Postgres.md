@@ -35,6 +35,3 @@ Construir un pipeline de extracción estructurada que consulte periódicamente H
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** Si se produce una importación masiva en HubSpot, recuperar miles de contactos en una sola petición podría agotar la memoria del nodo o chocar contra el límite de la API.
 * **Mejora Propuesta:** Implementar lógica de **paginación explícita** mediante un nodo `Loop` para extraer los registros en bloques (ej. 100 por iteración) hasta agotar la lista.
-
-## 📸 Capturas de Pantalla
-*(Añade tus capturas aquí)*
