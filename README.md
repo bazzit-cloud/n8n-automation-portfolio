@@ -12,6 +12,9 @@ Este repositorio documenta proyectos técnicos reales diseñados para resolver p
 ### 🔄 [Proyecto 2: Sincronización Transaccional HubSpot ↔ PostgreSQL con Idempotencia](./Proyecto_2_HubSpot_Postgres.md)
 * **Objetivo:** Diseñar un pipeline de sincronización de datos periódico (Pull/Cron) entre un CRM y una base de datos relacional, garantizando idempotencia mediante claves únicas y observabilidad de errores.
 
+### 🔀 [Proyecto 3: Enrutamiento Inteligente de Leads y Alertas Multicanal](./Proyecto_3_Routing_Alertas.md)
+* **Objetivo:** Construir un pipeline tolerante a fallos que normaliza payloads de un CRM, enruta alertas VIP a Telegram y estándar a Slack, e incluye una vía de escape (fallback) para auditar datos incompletos sin detener la ejecución.
+* 
 ## 🛠️ Stack Tecnológico
 * **Orquestador:** n8n (Self-hosted / Cloud)
 * **Integraciones:** APIs REST, Webhooks, HubSpot API, Google Sheets
