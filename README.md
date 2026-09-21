@@ -1,8 +1,8 @@
 # 🚀 Portfolio de Automatización e Integración con n8n
 
-¡Hola! Soy Automation & Integration Engineer especializado en la construcción de flujos de datos resilientes, automatización de procesos empresariales (RevOps/Operations) y aplicación práctica de Inteligencia Artificial (IA) sin sobreingeniería.
+"¡Hola! Construyo automatizaciones que funcionan, conectan herramientas (APIs, bases de datos, CRMs) y no se rompen a la mínima.
 
-Este repositorio documenta proyectos técnicos reales diseñados para resolver problemas de negocio, priorizando la fiabilidad, la idempotencia, el manejo de errores y la observabilidad.
+En este repositorio no vas a encontrar workflows inflados de 80 nodos ni IA metida con calzador para que quede bonito. Aquí documento proyectos estructurados para resolver cuellos de botella reales en operaciones y ventas. Mi foco está en lo que importa: que los datos lleguen a su sitio sin duplicados, que el código sea mantenible y que el sistema avise por Slack si algo falla."
 
 ## 📂 Proyectos
 
