@@ -12,6 +12,7 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 * **Inteligencia Artificial:** Google Gemini (Clasificación de texto)
 * **Base de Datos:** Google Sheets
 * **Observabilidad / Alertas:** Slack (vía Error Trigger global)
+
 ![Arquitectura del Proyecto 1](captura_1-proyecto-1.png)
 
 ## ⚙️ Decisiones Técnicas Destacadas
@@ -21,6 +22,7 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 
 ## 🛡️ Seguridad
 * Las credenciales (OAuth2 para Google, API Keys para IA y Slack) están aisladas en el gestor de credenciales de n8n. No hay secretos *hardcodeados* en los nodos.
+
 ![Arquitectura del Proyecto 1](captura_2-proyecto-1.png)
 
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
