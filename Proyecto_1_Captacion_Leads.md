@@ -12,6 +12,7 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 * **Inteligencia Artificial:** Google Gemini (Clasificación de texto)
 * **Base de Datos:** Google Sheets
 * **Observabilidad / Alertas:** Slack (vía Error Trigger global)
+![Arquitectura del Proyecto 1](captura_1-proyecto-1.png)
 
 ## ⚙️ Decisiones Técnicas Destacadas
 1. **Deduplicación e Idempotencia:** Antes de insertar un nuevo registro, el workflow consulta la base de datos de Google Sheets (`Get Row`). Si el email ya existe, el lead es bloqueado mediante un nodo `IF` (Filtro Anti-Duplicados) para mantener la integridad de los datos.
@@ -24,4 +25,4 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** Google Sheets no es ideal para grandes volúmenes de datos transaccionales ni búsquedas indexadas de alta velocidad.
 * **Mejora Propuesta:** Añadir un mecanismo de *Retry* (reintentos) en las llamadas al LLM por si la API de Gemini devuelve un error 500 temporal, y migrar la base de datos a PostgreSQL (implementado en el Proyecto 2).
-![Arquitectura del Proyecto 1](captura_1-proyecto-1.png)
+
