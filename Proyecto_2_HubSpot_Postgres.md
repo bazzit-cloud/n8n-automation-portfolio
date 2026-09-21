@@ -12,7 +12,7 @@ Construir un pipeline de extracción estructurada que consulte periódicamente H
 * **Origen de Datos:** API de HubSpot
 * **Destino de Datos:** Base de datos PostgreSQL
 * **Observabilidad:** Slack (Sistema de enrutamiento dinámico de errores)
-
+captura_1-proyecto-2.png
 
 ## ⚙️ Decisiones Técnicas Destacadas
 1. **Arquitectura Pull vs. Push:** En lugar de saturar el sistema con webhooks individuales por cada cambio en HubSpot, se implementó un mecanismo de extracción periódica (*Polling* con Schedule Trigger). Esto permite controlar el volumen de consumo de la API y mitigar riesgos de límite de peticiones (*Rate Limits*).
