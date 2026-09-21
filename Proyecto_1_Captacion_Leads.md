@@ -21,6 +21,7 @@ Construir un flujo automatizado que reciba datos de un formulario, utilice Intel
 
 ## 🛡️ Seguridad
 * Las credenciales (OAuth2 para Google, API Keys para IA y Slack) están aisladas en el gestor de credenciales de n8n. No hay secretos *hardcodeados* en los nodos.
+![Arquitectura del Proyecto 1](captura_2-proyecto-1.png)
 
 ## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
 * **Limitación Actual:** Google Sheets no es ideal para grandes volúmenes de datos transaccionales ni búsquedas indexadas de alta velocidad.
