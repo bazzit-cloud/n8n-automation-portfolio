@@ -1,5 +1,5 @@
 {
-  "name": "HubSpot → PostgreSQL",
+  "name": "Sincronización HubSpot → PostgreSQL",
   "nodes": [
     {
       "name": "Cada día a las 7:00",
@@ -131,7 +131,7 @@
       }
     },
     {
-      "name": "Upsert en PostgreSQL",
+      "name": "Guardar en PostgreSQL (upsert)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [
@@ -256,7 +256,7 @@
       "main": [
         [
           {
-            "node": "Upsert en PostgreSQL",
+            "node": "Guardar en PostgreSQL (upsert)",
             "type": "main",
             "index": 0
           }

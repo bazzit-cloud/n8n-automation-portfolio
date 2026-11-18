@@ -1,5 +1,5 @@
 {
-  "name": "SYS - Alertas de error",
+  "name": "Alertas de error (todos los flujos)",
   "nodes": [
     {
       "name": "Capturar error global",
@@ -79,7 +79,7 @@
       }
     },
     {
-      "name": "Slack: operaciones",
+      "name": "Alerta a #operations-team",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
@@ -101,7 +101,7 @@
       }
     },
     {
-      "name": "Slack: crm-hubspot",
+      "name": "Alerta a #crm-hubspot",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
@@ -123,7 +123,7 @@
       }
     },
     {
-      "name": "Slack: alerta general",
+      "name": "Alerta general (#operations-team)",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
@@ -161,21 +161,21 @@
       "main": [
         [
           {
-            "node": "Slack: operaciones",
+            "node": "Alerta a #operations-team",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Slack: crm-hubspot",
+            "node": "Alerta a #crm-hubspot",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Slack: alerta general",
+            "node": "Alerta general (#operations-team)",
             "type": "main",
             "index": 0
           }
