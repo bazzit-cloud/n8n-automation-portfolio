@@ -1,37 +1,51 @@
-# 🚀 Proyecto 2: Sincronización CRM a Base de Datos (HubSpot ↔ PostgreSQL)
+# Proyecto 2 · Sincronizar contactos de HubSpot con PostgreSQL
 
-## 📖 Descripción del Problema
-El equipo de operaciones necesitaba acceder a los datos de contactos del CRM (HubSpot) desde una base de datos relacional interna (PostgreSQL) para cruzar datos financieros y generar reportes. Las exportaciones manuales generaban cuellos de botella y discrepancias en los datos.
+[← Volver al inicio](./README.md)
 
-## 🎯 Objetivo (Portfolio)
-Construir un pipeline de extracción estructurada que consulte periódicamente HubSpot, extraiga los leads/contactos y los sincronice en PostgreSQL. El sistema debe garantizar que no se creen registros duplicados bajo ninguna circunstancia y enrutar las alertas de fallo al departamento correspondiente.
+## El escenario
 
-## 🏗 Arquitectura y Tecnologías
-* **Orquestador:** n8n
-* **Trigger:** Schedule Trigger (Cron / Polling temporal)
-* **Origen de Datos:** API de HubSpot
-* **Destino de Datos:** Base de datos PostgreSQL
-* **Observabilidad:** Slack (Sistema de enrutamiento dinámico de errores)
+Los contactos viven en HubSpot, pero operaciones quiere tenerlos en una base de datos propia para cruzarlos con facturación o sacar informes sin depender de exportar CSVs a mano. Exportar a mano cada semana acaba en datos desfasados y en duplicados.
 
-![Arquitectura del pipeline](captura_1-proyecto-2.png)
-![Arquitectura del pipeline](captura_2-proyecto-2.png)
-![Arquitectura del pipeline](captura_3-proyecto-2.png)
+## Qué hace
 
+1. **Cada día a las 7:00** se lanza solo.
+2. **Pide los contactos a la API de HubSpot** (`/crm/v3/objects/contacts`), solo con los campos que necesito: email, nombre, apellido y fecha de última modificación.
+3. **Pagina:** HubSpot devuelve como máximo 100 contactos por llamada y un cursor (`paging.next.after`) para pedir los siguientes. El nodo HTTP sigue pidiendo páginas hasta que no hay más, con un tope de 50 páginas y una pausa corta entre llamadas para no chocar con el límite de la API.
+4. **Separa y renombra campos** al formato de mi tabla (`hubspot_id`, `email`, `first_name`, `last_name`, fecha).
+5. **Upsert en PostgreSQL** usando `hubspot_id` como clave: si el contacto ya existe se actualiza, si no se crea. Puedo lanzar el flujo diez veces seguidas y la tabla queda igual. Es lo que se llama idempotencia, y es lo que permite reintentar sin miedo.
 
-## ⚙️ Decisiones Técnicas Destacadas
-1. **Arquitectura Pull vs. Push:** En lugar de saturar el sistema con webhooks individuales por cada cambio en HubSpot, se implementó un mecanismo de extracción periódica (*Polling* con Schedule Trigger). Esto permite controlar el volumen de consumo de la API y mitigar riesgos de límite de peticiones (*Rate Limits*).
-2. **Idempotencia Transaccional (Upsert):** El nodo de PostgreSQL no hace inserciones a ciegas. Está configurado para realizar una operación *Upsert* (Insertar o Actualizar) utilizando un identificador único (ID de HubSpot o Email) como clave. Si el flujo procesa el mismo registro dos veces, simplemente lo actualiza, garantizando la integridad de la base de datos sin generar duplicados.
-3. **Enrutamiento Dinámico de Alertas:** Los errores no van a un canal genérico. El workflow está protegido por un controlador global (`Error Trigger`). Si la sincronización falla (ej. endpoint roto o base de datos inactiva), el sistema evalúa el nombre del workflow a través de un nodo `Switch` y enruta la alerta técnica exclusivamente al canal de Slack `#crm-hubspot`, reduciendo el ruido para el resto del equipo.
+```mermaid
+flowchart LR
+    A[Cada día 7:00] --> B[HubSpot API<br/>100 por página + cursor]
+    B --> C[Separar contactos]
+    C --> D[Mapear campos]
+    D --> E[(PostgreSQL<br/>upsert por hubspot_id)]
+    B -. error .-> S[Alerta a Slack #crm-hubspot]
+    E -. error .-> S
+```
 
-## 🛡️ Seguridad
-* Las credenciales de acceso a la base de datos y los tokens de HubSpot están aislados en el gestor de credenciales nativo de n8n.
+## Qué pasa cuando algo falla
 
-![Arquitectura del pipeline](captura_4-proyecto-2.png)
+- **La API de HubSpot o la base de datos tienen un fallo puntual:** la petición se reintenta hasta 3 veces (HubSpot) o con reintentos en el nodo de base de datos.
+- **Falla de verdad:** el workflow global de alertas manda un mensaje al canal `#crm-hubspot` con el nodo que ha fallado, el motivo y el enlace a la ejecución. Lo probé provocando un error real: la alerta llegó a Slack en un par de segundos.
 
-![Arquitectura del pipeline](captura_5-proyecto-2.png)
+Escogí un canal propio para estos errores para que el equipo comercial no reciba ruido técnico que no le toca.
 
+## Decisiones
 
+- **Polling diario en vez de webhooks de HubSpot.** Para un informe diario no hace falta tiempo real, y así controlo cuántas llamadas hago a la API.
+- **Pedir solo las propiedades necesarias.** Menos datos por llamada y menos sorpresas si alguien añade campos en HubSpot.
 
-## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
-* **Limitación Actual:** Si se produce una importación masiva en HubSpot, recuperar miles de contactos en una sola petición podría agotar la memoria del nodo o chocar contra el límite de la API.
-* **Mejora Propuesta:** Implementar lógica de **paginación explícita** mediante un nodo `Loop` para extraer los registros en bloques (ej. 100 por iteración) hasta agotar la lista.
+## Lo que mejoraría
+
+- **Sincronización incremental:** en vez de traer todos los contactos cada día, traer solo los modificados desde la última ejecución (filtrando por `lastmodifieddate` con la API de búsqueda).
+- **Guardar la fecha como fecha** (`timestamp`) y no como texto `dd/MM/yyyy`, para poder ordenar y filtrar en SQL.
+- **Detectar contactos borrados** en HubSpot, que ahora mismo se quedarían en la tabla.
+
+## Capturas
+
+![Flujo en n8n](captura_1-proyecto-2.png)
+![Detalle](captura_2-proyecto-2.png)
+![Detalle](captura_3-proyecto-2.png)
+![Detalle](captura_4-proyecto-2.png)
+![Detalle](captura_5-proyecto-2.png)

@@ -1,37 +1,69 @@
-# 🚀 Proyecto 1: Sistema Inteligente de Captación y Clasificación de Leads con IA
+# Proyecto 1 · Captación y clasificación de leads con IA
 
-## 📖 Descripción del Problema
-El equipo de ventas perdía tiempo filtrando manualmente leads entrantes desde formularios. No había un sistema automatizado para descartar correos duplicados, calificar la calidad del lead en tiempo real y guardarlo en la base de datos de manera fiable.
+[← Volver al inicio](./README.md)
 
-## 🎯 Objetivo (Portfolio)
-Construir un flujo automatizado que reciba datos de un formulario, utilice Inteligencia Artificial para clasificar la intención del cliente, evite la creación de registros duplicados y almacene la información estructurada, contando con una red de seguridad para errores.
+## El escenario
 
-## 🏗 Arquitectura y Tecnologías
-* **Orquestador:** n8n
-* **Trigger:** Webhook / Form Submission
-* **Inteligencia Artificial:** Google Gemini (Clasificación de texto)
-* **Base de Datos:** Google Sheets
-* **Observabilidad / Alertas:** Slack (vía Error Trigger global)
+Una empresa pequeña recibe peticiones de contacto por un formulario web. Alguien tiene que leerlas una a una, decidir cuáles son urgentes y apuntarlas en una hoja. Si un cliente escribe dos veces, aparece dos veces. Si nadie mira el formulario un viernes por la tarde, el lead caliente espera al lunes.
 
-![Arquitectura del Proyecto 1](captura_1-proyecto-1.png)
+Quería que eso pasara solo y que, cuando algo fallase, se enterase alguien.
 
-![Arquitectura del Proyecto 1](captura_3-proyecto-1.png)
+## Qué hace
 
+1. El cliente rellena un formulario con nombre, email y en qué necesita ayuda.
+2. **Validación:** limpio espacios, paso el email a minúsculas y compruebo que tiene formato válido. Si no lo tiene, se guarda igualmente marcado como `INVALIDO` para revisarlo, pero no gasta una llamada a la IA.
+3. **Duplicados:** busco el email en la hoja. Si ya existe, el flujo para ahí. Lo hago **antes** de llamar a Gemini para no pagar por clasificar a alguien que ya tengo.
+4. **Clasificación:** Gemini lee el mensaje y responde con una sola palabra: `ALTA`, `MEDIA` o `BAJA`. El texto del cliente va delimitado y el prompt aclara que es contenido, no instrucciones, para que nadie pueda "darle órdenes" a la IA desde el formulario.
+5. **Normalización de la respuesta:** un modelo de lenguaje no siempre responde exactamente lo que pides. Paso la respuesta a mayúsculas y busco una de las tres palabras. Si no encuentro ninguna, el lead se guarda como `REVISAR` y aviso por Slack.
+6. **Guardado y aviso:** todo lead acaba en Google Sheets. Los de prioridad `ALTA` además generan un mensaje en el canal comercial de Slack con el nombre, el email y el problema.
 
-## ⚙️ Decisiones Técnicas Destacadas
-1. **Deduplicación e Idempotencia:** Antes de insertar un nuevo registro, el workflow consulta la base de datos de Google Sheets (`Get Row`). Si el email ya existe, el lead es bloqueado mediante un nodo `IF` (Filtro Anti-Duplicados) para mantener la integridad de los datos.
-2. **LLM como Motor de Clasificación:** En lugar de usar IA para generar texto libre, se utiliza Gemini con un prompt estructurado para analizar la entrada del usuario y devolver una categorización estricta (ej. ALTO, MEDIO, BAJO), facilitando el enrutamiento posterior.
-3. **Manejo de Errores y Enrutamiento (Routing):** El workflow está protegido por un flujo global de alertas (`Error Trigger`). Si la API de Google falla (ej. token caducado) o el LLM da error, los metadatos de la ejecución (`$json.workflow.name`, error message) se envían a un nodo `Switch` que enruta la alerta crítica al canal de Slack `#operations-team`.
+```mermaid
+flowchart LR
+    A[Formulario] --> B[Validar entrada]
+    B -->|válida| C{¿Email ya existe?}
+    B -->|inválida| X[Guardar como INVALIDO]
+    C -->|sí| D[Fin, no se duplica]
+    C -->|no| E[Gemini clasifica]
+    E -->|ok| F[Normalizar respuesta]
+    E -->|falla 3 veces| P[Guardar como PENDIENTE + aviso Slack]
+    F --> G{Calificación}
+    G -->|ALTA| H[Guardar + aviso a ventas]
+    G -->|MEDIA / BAJA| I[Guardar]
+    G -->|no reconocida| R[Guardar como REVISAR + aviso Slack]
+```
 
-## 🛡️ Seguridad
-* Las credenciales (OAuth2 para Google, API Keys para IA y Slack) están aisladas en el gestor de credenciales de n8n. No hay secretos *hardcodeados* en los nodos.
+## Qué pasa cuando algo falla
 
-![Arquitectura del Proyecto 1](captura_2-proyecto-1.png)
+| Situación | Qué hace el flujo |
+|---|---|
+| Email mal escrito o campos vacíos | Fila con `INVALIDO`, sin gastar IA |
+| El mismo cliente escribe otra vez (aunque cambie mayúsculas o deje un espacio) | Se detecta como duplicado y no se repite |
+| Gemini da error o límite de peticiones (429) | Hasta 3 intentos, con 5 segundos entre uno y otro. Si sigue fallando, el lead se guarda como `PENDIENTE` y llega un aviso a Slack |
+| Gemini responde algo raro | Fila con `REVISAR` y aviso a Slack |
+| Falla cualquier otra cosa (p. ej. caduca el acceso a Google Sheets) | El workflow de alertas global manda a Slack el nodo, el motivo y el enlace a la ejecución |
 
-![Arquitectura del Proyecto 1](captura_4-proyecto-1.png)
+## Por qué hice una v2
 
+La primera versión funcionaba en el caso feliz, pero tenía huecos que solo vi al probarla en serio:
 
-## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
-* **Limitación Actual:** Google Sheets no es ideal para grandes volúmenes de datos transaccionales ni búsquedas indexadas de alta velocidad.
-* **Mejora Propuesta:** Añadir un mecanismo de *Retry* (reintentos) en las llamadas al LLM por si la API de Gemini devuelve un error 500 temporal, y migrar la base de datos a PostgreSQL (implementado en el Proyecto 2).
+- Llamaba a Gemini **antes** de comprobar duplicados, así que pagaba por clasificar leads repetidos.
+- Si Gemini respondía `"ALTA\n"` o `"Alta"`, ninguna regla coincidía y el lead **no se guardaba ni avisaba**.
+- Un error 429 de Gemini cortaba el flujo y ese lead se perdía.
+- El formulario aceptaba campos vacíos, así que llegaban filas en blanco.
 
+La v2 corrige las cuatro cosas. La v1 está desactivada en mi n8n como referencia.
+
+## Lo que mejoraría con un cliente real
+
+- **Pasar de Google Sheets a una base de datos** (o al propio CRM). Sheets va bien para empezar, pero buscar duplicados ahí es lento cuando hay miles de filas.
+- **Reprocesar los `PENDIENTE` solos**: un flujo programado que los vuelva a mandar a Gemini cada hora.
+- **Guardar el motivo de la clasificación**, no solo la etiqueta, para que el comercial sepa por qué es ALTA.
+
+## Capturas
+
+Capturas de la primera versión del flujo:
+
+![Primera versión del flujo](captura_1-proyecto-1.png)
+![Detalle](captura_2-proyecto-1.png)
+![Detalle](captura_3-proyecto-1.png)
+![Detalle](captura_4-proyecto-1.png)

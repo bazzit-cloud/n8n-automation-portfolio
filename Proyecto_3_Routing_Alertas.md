@@ -1,33 +1,54 @@
-# 🚀 Proyecto 3: Enrutamiento Inteligente de Leads y Alertas Multicanal
+# Proyecto 3 · Avisar de cada deal en el canal adecuado
 
-## 📖 Descripción del Problema
-El equipo de ventas necesitaba notificaciones en tiempo real sobre nuevas oportunidades de negocio, priorizando los tratos de alto valor. Sin embargo, el sistema anterior fallaba silenciosamente o enrutaba mal los leads cuando el CRM enviaba datos incompletos (por ejemplo, oportunidades sin valor económico definido), provocando que los comerciales perdieran tiempo o ignoraran clientes VIP.
+[← Volver al inicio](./README.md)
 
-## 🎯 Objetivo (Portfolio)
-Construir un pipeline de ventas tolerante a fallos que reciba payloads de un CRM externo, normalice los tipos de datos y enrute las alertas de forma determinista hacia Slack (tratos estándar) o Telegram (tratos VIP). El sistema debe contar con una vía de escape (fallback) para capturar y auditar cualquier dato corrupto sin detener la ejecución.
+## El escenario
 
-![Arquitectura del pipeline](captura_1-proyecto-3.png)
+Cuando entra un deal en el CRM, ventas quiere enterarse al momento. Pero no todos los deals pesan lo mismo: uno de 8.000 € merece un aviso al móvil, uno de 800 € basta con verlo en Slack. Y a veces el CRM manda deals a medias, sin importe, que no deberían colarse como si nada.
 
-## 🏗 Arquitectura y Tecnologías
-* **Orquestador:** n8n
-* **Trigger:** Webhook (Recepción de payload en tiempo real)
-* **Lógica de Negocio:** Switch Node (Enrutamiento condicional)
-* **Canales de Salida:** API de Slack y API de Telegram
+## Qué hace
 
-![Arquitectura del pipeline](captura_2-proyecto-3.png)
+1. **Recibe el deal por webhook** (en formato JSON, como lo enviaría un CRM).
+2. **Normaliza los datos:** saca el ID, el nombre, el email y el importe, y convierte el importe a número. Así `"8000"` en texto se trata igual que `8000`.
+3. **Decide el canal:**
+   - **5.000 € o más** → mensaje por Telegram ("deal VIP").
+   - **Menos de 5.000 €** → mensaje en el canal comercial de Slack.
+   - **Sin importe** → aviso en un canal de revisión: "falta el valor económico, revisadlo en el CRM", con el ID del deal y el cliente.
 
-![Arquitectura del pipeline](captura_3-proyecto-3.png)
+```mermaid
+flowchart LR
+    A[Webhook del CRM] --> B[Normalizar datos]
+    B --> C{Importe}
+    C -->|≥ 5.000 €| T[Telegram: deal VIP]
+    C -->|< 5.000 €| S[Slack: deal estándar]
+    C -->|vacío| R[Slack: revisar a mano]
+```
 
-## ⚙️ Decisiones Técnicas Destacadas
-1. **Normalización de Datos (Defensive Programming):** Antes de evaluar cualquier regla de negocio, el payload entrante pasa por un proceso de tipado estricto. Esto previene errores comunes de coerción de tipos en JavaScript (ej. donde `null` se evalúa como `0`), garantizando que las condiciones matemáticas posteriores sean precisas.
-2. **Enrutamiento por Reglas de Negocio:** Se implementó una bifurcación clara utilizando un nodo `Switch`. Las oportunidades con valor igual o superior a 5.000€ se envían por Telegram para atención inmediata, mientras que el resto va al canal general de Slack.
-3. **Vía de Escape (Fallback):** En lugar de permitir que el workflow falle ante un dato inesperado (ej. campo `amount` vacío), se habilitó la salida *Fallback* del nodo Switch. Cualquier registro que no cumpla las reglas numéricas es expulsado por esta tercera vía y enviado a un canal de Operaciones para su revisión manual.
+La clave está en el tercer camino. Un deal sin importe no es un error del sistema, es un dato incompleto. No quiero que el flujo se pare, ni que el deal se pierda, ni que se cuele como deal estándar con "0 €". Lo aparto y aviso.
 
-## 🛡️ Manejo de Errores
-El sistema no asume que la API de origen enviará datos perfectos. La combinación de normalización previa y la ruta de *Fallback* actúa como un escudo protector, asegurando que ningún lead se pierda por un error informático y aislando los registros problemáticos del flujo de ventas principal.
+## El fallo que encontré
 
-![Arquitectura del pipeline](captura_4-proyecto-3.png)
+Al probarlo enviando deals reales al webhook, **todos acababan en el canal de revisión**, incluso uno de 1.200 € con todos sus datos.
 
-## 🚧 Limitaciones y Posibles Mejoras (Next Steps)
-* **Limitación Actual:** El umbral de 5.000€ está "hardcodeado" (fijado manualmente) dentro del nodo Switch. Si el negocio decide cambiarlo, requiere un despliegue técnico.
-* **Mejora Propuesta:** Extraer las reglas de negocio a una tabla de configuración externa (ej. PostgreSQL o Airtable) y cachear esos valores en n8n al inicio de la ejecución, permitiendo a Operaciones cambiar los umbrales sin tocar el código.
+El motivo: cuando n8n recibe una petición en un webhook, el contenido no llega en la raíz, llega dentro de `body`. Mi nodo de normalización leía `$json.deal.amount`, cuando el dato real estaba en `$json.body.deal.amount`. En el editor no lo vi porque probaba con datos fijados a mano, que no llevaban ese `body`.
+
+Lo corregí y lo volví a probar con tres casos: 1.200 € (llegó a Slack), 8.000 € (llegó a Telegram) y sin importe (llegó a revisión con el ID y el nombre del cliente).
+
+Lo que me llevo: **probar el flujo como lo va a usar el sistema real**, no solo con datos de ejemplo en el editor.
+
+## Si algo falla
+
+Este flujo también está conectado al workflow global de alertas. Si, por ejemplo, Telegram o Slack no responden, después de 3 reintentos llega un aviso a Slack con el error y el enlace a la ejecución.
+
+## Lo que mejoraría
+
+- **Sacar el umbral de 5.000 € del flujo** a una variable o una tabla de configuración, para que ventas pueda cambiarlo sin tocar n8n.
+- **Validar el origen del webhook** con una cabecera secreta, para que nadie de fuera pueda mandar deals falsos.
+- **Agrupar los deals estándar** en un resumen cada hora si el volumen sube, para no llenar Slack.
+
+## Capturas
+
+![Flujo en n8n](captura_1-proyecto-3.png)
+![Detalle](captura_2-proyecto-3.png)
+![Detalle](captura_3-proyecto-3.png)
+![Detalle](captura_4-proyecto-3.png)
