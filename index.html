@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflows de n8n · Anass Bassit</title>
+<meta name="description" content="Tres automatizaciones con n8n explicadas y visibles en directo: captación de leads con IA, sincronización HubSpot → PostgreSQL y avisos de deals.">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@n8n_io/n8n-demo-component@1.0.20/n8n-demo.bundled.js"></script>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#ffffff; --ink:#1d1d1f; --muted:#5f6368; --line:#e4e2dc;
+    --accent:#ea4b71; --accent-soft:#fde8ee; --ok:#1e8e5a; --warn:#b26a00;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  a{color:var(--accent)}
+  header{max-width:980px;margin:0 auto;padding:56px 24px 24px}
+  header .kicker{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  header h1{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:0 0 12px}
+  header p{max-width:680px;color:var(--muted);margin:0 0 6px}
+  header .links{margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;font-size:15px}
+  nav{position:sticky;top:0;z-index:5;background:rgba(247,246,243,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  nav .wrap{max-width:980px;margin:0 auto;padding:0 24px;display:flex;gap:4px;overflow-x:auto}
+  nav button{appearance:none;border:0;background:none;padding:14px 14px;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+  nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  main{max-width:980px;margin:0 auto;padding:28px 24px 64px}
+  section[hidden]{display:none}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  h2{font-size:26px;margin:0 0 6px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
+  .tag{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted)}
+  .lead{color:var(--muted);max-width:720px;margin:14px 0 20px}
+  .canvas{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  n8n-demo{--n8n-workflow-min-height:460px;--n8n-frame-background-color:#fbfbfb;display:block}
+  .fallback{display:none;padding:28px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:20px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .box h3{font-size:15px;margin:0 0 8px}
+  .box ul{margin:0;padding-left:18px}
+  .box li{margin:4px 0;font-size:15px}
+  .box.fix{border-left:4px solid var(--accent)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:14px;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .hint{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  footer{max-width:980px;margin:0 auto;padding:0 24px 48px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="kicker">Portfolio de automatización</p>
+  <h1>Los workflows, tal cual están en n8n</h1>
+  <p>Soy Anass Bassit. Aquí puedes ver mis tres automatizaciones como se ven en el editor de n8n: los nodos reales, sus conexiones y su configuración. Haz clic en el lienzo para moverte, hacer zoom o abrir un nodo.</p>
+  <p>Debajo de cada uno explico qué hace, qué pasa cuando algo falla y qué arreglé al probarlo.</p>
+  <div class="links">
+    <a href="https://github.com/bazzit-cloud/n8n-automation-portfolio">Repositorio en GitHub</a>
+    <a href="https://www.linkedin.com/in/anass-bassit-2b916326b">LinkedIn</a>
+  </div>
+</header>
+
+<nav aria-label="Proyectos">
+  <div class="wrap" role="tablist">
+    <button role="tab" data-tab="p1" aria-selected="true">1 · Captación de leads con IA</button>
+    <button role="tab" data-tab="p2" aria-selected="false">2 · HubSpot → PostgreSQL</button>
+    <button role="tab" data-tab="p3" aria-selected="false">3 · Aviso de deals</button>
+    <button role="tab" data-tab="p4" aria-selected="false">Alertas de error</button>
+  </div>
+</nav>
+
+<main>
+
+<section id="p1" data-file="workflows/01-captacion-leads.json" data-doc="Proyecto_1_Captacion_Leads.md">
+  <div class="head">
+    <div>
+      <h2>Captación y clasificación de leads con IA</h2>
+      <div class="tags"><span class="tag">Form de n8n</span><span class="tag">Gemini</span><span class="tag">Google Sheets</span><span class="tag">Slack</span><span class="tag">JavaScript</span></div>
+    </div>
+  </div>
+  <p class="lead">Alguien rellena un formulario. El flujo valida los datos, descarta duplicados antes de gastar IA, pide a Gemini que puntúe el lead (ALTA, MEDIA o BAJA), lo guarda en la hoja y avisa a ventas si es urgente.</p>
+  <div class="canvas"><n8n-demo clicktointeract="true" frame="true"></n8n-demo><div class="fallback"></div></div>
+  <p class="hint">Truco: el nodo «Normalizar calificación» es JavaScript. Ábrelo para ver cómo convierto la respuesta libre de la IA en un valor fiable.</p>
+  <div class="grid">
+    <div class="box"><h3>Si algo falla</h3><ul>
+      <li>Email inválido o campos vacíos: se guarda como <b>INVALIDO</b>, sin llamar a la IA.</li>
+      <li>Gemini falla 3 veces: se guarda como <b>PENDIENTE</b> y avisa por Slack.</li>
+      <li>Gemini responde algo raro: <b>REVISAR</b> y aviso.</li>
+    </ul></div>
+    <div class="box fix"><h3>Qué cambié respecto a la v1</h3><ul>
+      <li>Duplicados comprobados <b>antes</b> de la IA, no después.</li>
+      <li>Un «Alta» o un salto de línea ya no hacen que el lead se pierda.</li>
+      <li>Reintentos ante el error 429 de Gemini.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="p2" hidden data-file="workflows/02-hubspot-postgres.json" data-doc="Proyecto_2_HubSpot_Postgres.md">
+  <h2>Sincronizar contactos de HubSpot con PostgreSQL</h2>
+  <div class="tags"><span class="tag">API de HubSpot</span><span class="tag">Paginación</span><span class="tag">PostgreSQL</span><span class="tag">Upsert</span></div>
+  <p class="lead">Cada día a las 7:00 pide todos los contactos a HubSpot, de 100 en 100 siguiendo el cursor de paginación, y los guarda en PostgreSQL con un upsert por <code>hubspot_id</code>. Se puede lanzar diez veces seguidas y la tabla queda igual.</p>
+  <div class="canvas"><n8n-demo clicktointeract="true" frame="true"></n8n-demo><div class="fallback"></div></div>
+  <div class="grid">
+    <div class="box"><h3>Decisiones</h3><ul>
+      <li>Polling diario en vez de webhooks: para un informe diario sobra el tiempo real.</li>
+      <li>Solo pido las 4 propiedades que uso.</li>
+      <li>Reintentos en la API y en la base de datos.</li>
+    </ul></div>
+    <div class="box fix"><h3>Qué arreglé</h3><ul>
+      <li>Apuntaba a un endpoint que no existía.</li>
+      <li>Solo traía 2 contactos y una vez al mes.</li>
+      <li>Añadí la paginación que antes estaba como «pendiente».</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="p3" hidden data-file="workflows/03-aviso-deals.json" data-doc="Proyecto_3_Routing_Alertas.md">
+  <h2>Avisar de cada deal en el canal adecuado</h2>
+  <div class="tags"><span class="tag">Webhook</span><span class="tag">Switch</span><span class="tag">Slack</span><span class="tag">Telegram</span></div>
+  <p class="lead">Recibe deals por webhook. Desde 5.000 € avisa por Telegram; por debajo, por Slack. Si llega sin importe no se pierde ni se cuela como «0 €»: va a un canal de revisión con el ID y el cliente.</p>
+  <div class="canvas"><n8n-demo clicktointeract="true" frame="true"></n8n-demo><div class="fallback"></div></div>
+  <div class="grid">
+    <div class="box fix"><h3>El fallo que encontré</h3><ul>
+      <li>Todos los deals acababan como «error de datos», incluso uno de 1.200 €.</li>
+      <li>Un webhook real mete los datos dentro de <code>body</code>, y yo leía <code>$json.deal</code>.</li>
+      <li>En el editor no se veía porque probaba con datos fijados a mano.</li>
+    </ul></div>
+    <div class="box"><h3>Cómo lo comprobé</h3><ul>
+      <li>1.200 € → Slack.</li>
+      <li>8.000 € → Telegram.</li>
+      <li>Sin importe → canal de revisión.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="p4" hidden data-file="workflows/04-alertas-de-error.json" data-doc="README.md">
+  <h2>Alertas de error para todos los flujos</h2>
+  <div class="tags"><span class="tag">Error Trigger</span><span class="tag">Switch</span><span class="tag">Slack</span></div>
+  <p class="lead">Cuando cualquier workflow falla, este flujo manda a Slack el nombre del workflow, el nodo que ha fallado, el motivo y un enlace directo a la ejecución. Los errores de HubSpot van a su propio canal para no meter ruido técnico al equipo comercial.</p>
+  <div class="canvas"><n8n-demo clicktointeract="true" frame="true"></n8n-demo><div class="fallback"></div></div>
+  <div class="grid">
+    <div class="box fix"><h3>Qué arreglé</h3><ul>
+      <li>Antes elegía el canal por el <b>nombre</b> del workflow: al renombrar uno, sus avisos desaparecían.</li>
+      <li>Ahora usa el <b>ID</b>, y hay una salida general para cualquier otro flujo.</li>
+      <li>Cada aviso incluye el enlace a la ejecución.</li>
+    </ul></div>
+  </div>
+</section>
+
+<div class="actions" style="margin-top:22px">
+  <a class="btn primary" id="doc-link" href="#">Leer la explicación completa</a>
+  <a class="btn" id="json-link" href="#" download>Descargar el JSON</a>
+  <button class="btn" id="copy-btn" type="button">Copiar JSON para importar en n8n</button>
+</div>
+<p class="hint">Para importarlo: copia el JSON, abre un workflow vacío en n8n y pega con Ctrl+V. Los IDs de hojas, canales y credenciales están sustituidos por marcadores tipo <code>TU_CANAL_COMERCIAL</code>.</p>
+
+</main>
+
+<footer>Hecho por Anass Bassit · n8n self-hosted en Docker</footer>
+
+<script>
+const REPO = "https://github.com/bazzit-cloud/n8n-automation-portfolio/blob/main/";
+const cache = {};
+async function load(section){
+  const file = section.dataset.file;
+  const demo = section.querySelector("n8n-demo");
+  const fb = section.querySelector(".fallback");
+  try{
+    if(!cache[file]){ const r = await fetch(file); if(!r.ok) throw new Error(r.status); cache[file] = await r.text(); }
+    if(!demo.getAttribute("workflow")) demo.setAttribute("workflow", cache[file]);
+  }catch(e){
+    demo.style.display="none"; fb.style.display="block";
+    fb.innerHTML = 'No se ha podido cargar la vista previa. Puedes ver el workflow en <a href="'+REPO+file+'">GitHub</a>.';
+  }
+}
+function select(id){
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===id));
+  document.querySelectorAll("main section").forEach(s=>s.hidden = s.id!==id);
+  const s = document.getElementById(id);
+  document.getElementById("doc-link").href = REPO + s.dataset.doc;
+  const j = document.getElementById("json-link"); j.href = s.dataset.file;
+  load(s);
+  if(history.replaceState) history.replaceState(null,"","#"+id);
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>select(b.dataset.tab)));
+document.getElementById("copy-btn").addEventListener("click", async (ev)=>{
+  const s = document.querySelector("main section:not([hidden])");
+  await load(s);
+  try{ await navigator.clipboard.writeText(cache[s.dataset.file]); ev.target.textContent="Copiado ✓"; }
+  catch(e){ ev.target.textContent="No se pudo copiar"; }
+  setTimeout(()=>ev.target.textContent="Copiar JSON para importar en n8n",1800);
+});
+const start = (location.hash||"#p1").slice(1);
+select(document.getElementById(start) ? start : "p1");
+</script>
+</body>
+</html>
