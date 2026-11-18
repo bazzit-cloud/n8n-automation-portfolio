@@ -44,8 +44,6 @@ Escogí un canal propio para estos errores para que el equipo comercial no recib
 
 ## Capturas
 
-![Flujo en n8n](captura_1-proyecto-2.png)
-![Detalle](captura_2-proyecto-2.png)
-![Detalle](captura_3-proyecto-2.png)
-![Detalle](captura_4-proyecto-2.png)
-![Detalle](captura_5-proyecto-2.png)
+![Flujo en n8n](WORKFLOW_HUBSPOT_POSTGRESGL_PHOTO.png)
+![Detalle](WORKFLOW_HUBSPOT_POSTGRESGL_SUPA_PHOTO.png)
+
