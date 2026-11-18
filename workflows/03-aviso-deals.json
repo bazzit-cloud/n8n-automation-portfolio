@@ -1,0 +1,234 @@
+{
+  "name": "Aviso de deals por importe",
+  "nodes": [
+    {
+      "name": "Webhook del CRM",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "deals-crm",
+        "options": {}
+      }
+    },
+    {
+      "name": "Normalizar deal",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "deal_id",
+              "value": "={{ $json.body.deal.deal_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "contact_name",
+              "value": "={{ $json.body.deal.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "contact_email",
+              "value": "={{ $json.body.deal.contact_email }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "amount",
+              "value": "={{ $json.body.deal.amount }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Enrutar por importe",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        100
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "vip",
+                    "leftValue": "={{ $json.amount }}",
+                    "rightValue": "={{ 5000 }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "std",
+                    "leftValue": "={{ $json.amount != null && $json.amount < 5000 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "allMatchingOutputs": true
+        }
+      }
+    },
+    {
+      "name": "Telegram: deal VIP",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        760,
+        -60
+      ],
+      "parameters": {
+        "chatId": "TU_CHAT_ID_TELEGRAM",
+        "text": "=🚨 NUEVO DEAL VIP 🚨\nCliente: {{ $json.contact_name }}\nValor: {{ $json.amount }} €\nEmail: {{ $json.contact_email }}",
+        "additionalFields": {}
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "name": "Slack: deal estándar",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        760,
+        100
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TU_CANAL_COMERCIAL"
+        },
+        "text": "=🟢 NUEVO DEAL ESTÁNDAR Cliente: {{ $json.contact_name }} Valor: {{ $json.amount }} € Email: {{ $json.contact_email }}",
+        "otherOptions": {}
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "name": "Slack: revisar a mano",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        760,
+        260
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TU_CANAL_REVISION"
+        },
+        "text": "=⚠️ ERROR DE DATOS EN CRM ⚠️\nSe ha recibido un lead, pero falta el valor económico. Imposible enrutar.\nID del Deal: {{ $json.deal_id }}\nCliente: {{ $json.contact_name }}\nPor favor, revisad este registro manualmente en el CRM.",
+        "otherOptions": {}
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Webhook del CRM": {
+      "main": [
+        [
+          {
+            "node": "Normalizar deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar deal": {
+      "main": [
+        [
+          {
+            "node": "Enrutar por importe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutar por importe": {
+      "main": [
+        [
+          {
+            "node": "Telegram: deal VIP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: deal estándar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: revisar a mano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

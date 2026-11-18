@@ -2,6 +2,8 @@
 
 Soy Anass. Vengo del marketing digital (SEO, captación, algo de ventas) y desde hace un tiempo me dedico a lo que siempre me tocaba hacer a mano: mover datos entre herramientas, clasificar leads, avisar al equipo cuando pasa algo. Ahora lo construyo con n8n, APIs y un poco de JavaScript.
 
+**[👉 Ver los workflows en directo, tal cual están en n8n](https://bazzit-cloud.github.io/n8n-automation-portfolio/)**
+
 Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, en local). No son encargos de clientes: son escenarios realistas que me sirven para practicar con integraciones de verdad (Google Sheets, Gemini, HubSpot, PostgreSQL, Slack y Telegram) y, sobre todo, para aprender a que no se rompan en silencio.
 
 ## Los proyectos en 30 segundos
@@ -11,6 +13,8 @@ Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, 
 | [**1. Captación de leads con IA**](./Proyecto_1_Captacion_Leads.md) | Alguien rellena un formulario. El flujo valida los datos, descarta duplicados, le pide a Gemini que puntúe el lead (ALTA / MEDIA / BAJA), lo guarda y avisa a ventas si es urgente. | Form de n8n, Gemini, Google Sheets, Slack |
 | [**2. HubSpot → PostgreSQL**](./Proyecto_2_HubSpot_Postgres.md) | Copia cada día los contactos de HubSpot a una base de datos propia, sin duplicados, para poder cruzarlos con otros datos. | API de HubSpot, PostgreSQL, Slack |
 | [**3. Aviso de deals por importe**](./Proyecto_3_Routing_Alertas.md) | Recibe deals por webhook. Si superan 5.000 € avisa por Telegram; si no, por Slack. Si falta el importe, lo manda a revisión en vez de perderlo. | Webhook, Slack, Telegram |
+
+Los JSON de los cuatro workflows están en [`/workflows`](./workflows), sin datos privados, para importarlos en cualquier n8n.
 
 Los tres comparten un **workflow de alertas**: si cualquiera falla, llega un mensaje a Slack con el workflow, el nodo que ha fallado, el motivo y un enlace directo a la ejecución.
 

@@ -1,0 +1,189 @@
+{
+  "name": "SYS - Alertas de error",
+  "nodes": [
+    {
+      "name": "Capturar error global",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "name": "Enrutar por workflow",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        100
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "Errores IA/Leads0",
+                    "leftValue": "={{ $json.workflow.id }}",
+                    "rightValue": "ID_WORKFLOW_LEADS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Errores IA/Leads"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "Errores HubSpot0",
+                    "leftValue": "={{ $json.workflow.id }}",
+                    "rightValue": "ID_WORKFLOW_HUBSPOT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Errores HubSpot"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "allMatchingOutputs": false
+        }
+      }
+    },
+    {
+      "name": "Slack: operaciones",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        520,
+        -60
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TU_CANAL_OPERACIONES"
+        },
+        "text": "=🚨 *ALERTA CRÍTICA DE SISTEMA* 🚨\n\n*Workflow:* {{ $json.workflow.name }}\n*Nodo afectado:* {{ $json.execution.lastNodeExecuted }}\n*Motivo:* {{ $json.execution.error.message }}\n*Ejecución:* {{ $json.execution.url }}\n*Acción requerida:* abrir la ejecución en n8n y revisar el nodo afectado.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true
+        }
+      }
+    },
+    {
+      "name": "Slack: crm-hubspot",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        520,
+        100
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TU_CANAL_CRM"
+        },
+        "text": "=🚨 *FALLO DE SINCRONIZACIÓN CRM* 🚨\n\n*Workflow:* {{ $json.workflow.name }}\n*Nodo afectado:* {{ $json.execution.lastNodeExecuted }}\n*Motivo del fallo:* {{ $json.execution.error.message }}\n*Ejecución:* {{ $json.execution.url }}\n\n*Impacto:* los contactos de HubSpot no se están guardando en PostgreSQL.\n*Acción requerida:* revisar la ejecución en n8n.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true
+        }
+      }
+    },
+    {
+      "name": "Slack: alerta general",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        520,
+        260
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TU_CANAL_OPERACIONES"
+        },
+        "text": "=⚠️ *Error en un workflow sin canal propio*\n\n*Workflow:* {{ $json.workflow.name }}\n*Nodo afectado:* {{ $json.execution.lastNodeExecuted }}\n*Motivo:* {{ $json.execution.error.message }}\n*Ejecución:* {{ $json.execution.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Capturar error global": {
+      "main": [
+        [
+          {
+            "node": "Enrutar por workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutar por workflow": {
+      "main": [
+        [
+          {
+            "node": "Slack: operaciones",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: crm-hubspot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: alerta general",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
