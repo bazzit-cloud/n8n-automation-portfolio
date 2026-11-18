@@ -4,7 +4,7 @@ Los cuatro workflows en formato JSON, listos para importar en n8n (abre un workf
 
 | Archivo | Proyecto |
 |---|---|
-| `01-captacion-leads.json` | Captación y clasificación de leads con IA (v2) |
+| `01-captacion-leads.json` | Captación y clasificación de leads con IA |
 | `02-hubspot-postgres.json` | Sincronización de contactos HubSpot → PostgreSQL |
 | `03-aviso-deals.json` | Aviso de deals por importe (Slack / Telegram) |
 | `04-alertas-de-error.json` | Alertas de error comunes a todos los flujos |
