@@ -71,25 +71,21 @@
 <main>
 
 <section id="p1" data-file="workflows/01-captacion-leads.json" data-doc="Proyecto_1_Captacion_Leads.md">
-  <div class="head">
-    <div>
-      <h2>Captación y clasificación de leads con IA</h2>
-      <div class="tags"><span class="tag">Form de n8n</span><span class="tag">Gemini</span><span class="tag">Google Sheets</span><span class="tag">Slack</span><span class="tag">JavaScript</span></div>
-    </div>
-  </div>
-  <p class="lead">Alguien rellena un formulario. El flujo valida los datos, descarta duplicados antes de gastar IA, pide a Gemini que puntúe el lead (ALTA, MEDIA o BAJA), lo guarda en la hoja y avisa a ventas si es urgente.</p>
+  <h2>Captación y clasificación de leads con IA</h2>
+  <div class="tags"><span class="tag">Form de n8n</span><span class="tag">Gemini</span><span class="tag">Google Sheets</span><span class="tag">Slack</span></div>
+  <p class="lead">Alguien rellena un formulario. El flujo limpia los datos, descarta duplicados antes de gastar IA, pide a Gemini que puntúe el lead (ALTA, MEDIA o BAJA), lo guarda en la hoja y avisa a ventas si es urgente.</p>
   <div class="canvas"><n8n-demo clicktointeract="true" frame="true"></n8n-demo><div class="fallback"></div></div>
-  <p class="hint">Truco: el nodo «Normalizar calificación» es JavaScript. Ábrelo para ver cómo convierto la respuesta libre de la IA en un valor fiable.</p>
+  <p class="hint">Truco: abre el nodo «Limpiar Payload IA» para ver cómo convierto la respuesta libre de la IA en un valor fiable.</p>
   <div class="grid">
     <div class="box"><h3>Si algo falla</h3><ul>
-      <li>Email inválido o campos vacíos: se guarda como <b>INVALIDO</b>, sin llamar a la IA.</li>
-      <li>Gemini falla 3 veces: se guarda como <b>PENDIENTE</b> y avisa por Slack.</li>
+      <li>Cliente repetido (aunque cambie mayúsculas): no se duplica.</li>
+      <li>Gemini falla 3 veces: se guarda como <b>PENDIENTE</b> y avisa a operaciones.</li>
       <li>Gemini responde algo raro: <b>REVISAR</b> y aviso.</li>
     </ul></div>
-    <div class="box fix"><h3>Qué cambié respecto a la v1</h3><ul>
+    <div class="box fix"><h3>Qué cambié al revisarlo</h3><ul>
       <li>Duplicados comprobados <b>antes</b> de la IA, no después.</li>
       <li>Un «Alta» o un salto de línea ya no hacen que el lead se pierda.</li>
-      <li>Reintentos ante el error 429 de Gemini.</li>
+      <li>El Switch tenía 3 salidas al mismo sitio; ahora cada una hace algo.</li>
     </ul></div>
   </div>
 </section>
