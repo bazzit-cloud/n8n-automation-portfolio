@@ -48,7 +48,6 @@ Este flujo también está conectado al workflow global de alertas. Si, por ejemp
 
 ## Capturas
 
-![Flujo en n8n](captura_1-proyecto-3.png)
-![Detalle](captura_2-proyecto-3.png)
-![Detalle](captura_3-proyecto-3.png)
-![Detalle](captura_4-proyecto-3.png)
+![Flujo en n8n](WORKFLOW_PROYECTO_COMERCIAL_PHOTO.png)
+![Detalle](WORKFLOW_PROYECTO_COMERCIAL_SLACK_PHOTO.png)
+![Detalle](WORKFLOW_PROYECTO_COMERCIAL_TELEGRAM_PHOTO.png)
