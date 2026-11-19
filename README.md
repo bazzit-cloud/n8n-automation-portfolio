@@ -1,6 +1,6 @@
 # Automatizaciones con n8n · Anass Bassit
 
-Soy Anass. Vengo del marketing digital (SEO, captación, algo de ventas) y desde hace un tiempo me dedico a lo que siempre me tocaba hacer a mano: mover datos entre herramientas, clasificar leads, avisar al equipo cuando pasa algo. Ahora lo construyo con n8n, APIs y un poco de JavaScript.
+Soy Anass. Vengo del marketing digital (dos años como Responsable SEO y experiencia comercial B2B) y llevo un tiempo automatizando lo que antes se hacía a mano: mover datos entre herramientas, clasificar leads y avisar al equipo cuando pasa algo. Lo construyo con n8n, APIs y algo de JavaScript.
 
 Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, en local). No son encargos de clientes: son escenarios realistas que me sirven para practicar con integraciones de verdad (Google Sheets, Gemini, HubSpot, PostgreSQL, Slack y Telegram) y, sobre todo, para aprender a que no se rompan en silencio.
 
@@ -9,7 +9,7 @@ Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, 
 | | Qué resuelve | Herramientas |
 |---|---|---|
 | [**1. Captación de leads con IA**](./Proyecto_1_Captacion_Leads.md) | Alguien rellena un formulario. El flujo limpia los datos, descarta duplicados, le pide a Gemini que puntúe el lead (ALTA / MEDIA / BAJA), lo guarda y avisa a ventas si es urgente. | Form de n8n, Gemini, Google Sheets, Slack |
-| [**2. HubSpot → PostgreSQL**](./Proyecto_2_HubSpot_Postgres.md) | Copia cada día los contactos de HubSpot a una base de datos propia, sin duplicados, para poder cruzarlos con otros datos. | API de HubSpot, PostgreSQL, Slack |
+| [**2. HubSpot → PostgreSQL**](./Proyecto_2_HubSpot_Postgres.md) | Copia cada día los contactos de HubSpot a una base de datos propia, sin duplicados, para poder cruzarlos con otros datos. | API de HubSpot, PostgreSQL (Supabase), Slack |
 | [**3. Aviso de deals por importe**](./Proyecto_3_Routing_Alertas.md) | Recibe deals por webhook. Si superan 5.000 € avisa por Telegram; si no, por Slack. Si falta el importe, lo manda a revisión en vez de perderlo. | Webhook, Slack, Telegram |
 
 Los JSON de los cuatro workflows están en [`/workflows`](./workflows), sin datos privados, para importarlos en cualquier n8n. Cada proyecto incluye capturas del flujo ejecutándose y de su resultado (Sheets, Supabase, Slack y Telegram).
@@ -24,9 +24,9 @@ Los tres comparten un **workflow de alertas**: si cualquiera falla, llega un men
 
 ## Lo que me encontré al revisar los flujos (y cómo lo arreglé)
 
-Revisé los tres proyectos de arriba abajo, lanzándolos como si fueran producción. Esto es lo que salió. Lo dejo aquí porque explica mejor que nada cómo pienso:
+Revisé los tres proyectos de arriba abajo, lanzándolos como si fueran producción. Esto es lo que encontré:
 
-- **El flujo de deals marcaba todos los deals como "error de datos".** En el editor funcionaba porque probaba con datos fijados, pero un webhook real mete el contenido dentro de `body`. El nodo de normalización leía `$json.deal` en vez de `$json.body.deal`, así que todo llegaba vacío. Lo corregí y lo comprobé con un deal estándar, uno VIP y uno sin importe.
+- **El flujo de deals marcaba todos los deals como "error de datos".** En el editor funcionaba porque probaba con datos fijados, pero un webhook real mete el contenido dentro de `body`. El nodo de normalización leía `$json.deal` en vez de `$json.body.deal`, así que todo llegaba vacío. Ahora lee el deal en los dos casos, y lo comprobé con un deal estándar, uno VIP y uno sin importe.
 - **Las alertas de error dependían del nombre del workflow.** Bastaba con renombrar un flujo para que sus errores dejaran de avisar, y los flujos que no estaban en la lista no avisaban nunca. Ahora se enruta por ID y hay una salida "general" para el resto.
 - **La sincronización con HubSpot apuntaba a un endpoint que no existe** y pedía solo 2 contactos, una vez al mes. Ahora llama a `/crm/v3/objects/contacts`, pagina de 100 en 100 con el cursor `after` y se ejecuta a diario.
 - **El clasificador de leads podía perder un lead sin avisar.** Si Gemini devolvía algo distinto de ALTA, MEDIA o BAJA (o fallaba por límite de peticiones), el lead no se guardaba. Ahora la respuesta se normaliza, hay reintentos y, si aun así falla, el lead se guarda como PENDIENTE y avisa. Además, los duplicados se comprueban antes de llamar a la IA, no después.
@@ -34,9 +34,9 @@ Revisé los tres proyectos de arriba abajo, lanzándolos como si fueran producci
 
 ## Stack
 
-n8n (self-hosted en Docker) · JavaScript dentro de n8n · APIs REST y webhooks · HubSpot · PostgreSQL · Google Sheets · Gemini · Slack · Telegram · Git
+n8n (self-hosted en Docker) · JavaScript dentro de n8n · APIs REST, webhooks y JSON · HubSpot · PostgreSQL (Supabase) · Google Sheets · Gemini · Slack · Telegram · Git
 
 ## Contacto
 
 - LinkedIn: [linkedin.com/in/anass-bassit-2b916326b](https://www.linkedin.com/in/anass-bassit-2b916326b)
-- Busco puestos de automatización, integraciones u operaciones (Marketing Ops / Sales Ops / RevOps), en Madrid (presencial, híbrido o remoto). Incorporación inmediata.
+- Busco puestos de automatización, integraciones u operaciones (Marketing Ops / Sales Ops / RevOps) en Madrid. Disponible para trabajo presencial, híbrido o remoto, con incorporación inmediata.

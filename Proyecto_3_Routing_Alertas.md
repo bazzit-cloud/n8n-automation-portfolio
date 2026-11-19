@@ -17,7 +17,7 @@ Cuando entra un deal en el CRM, ventas quiere enterarse al momento. Pero no todo
 
 ```mermaid
 flowchart LR
-    A[Webhook del CRM] --> B[Normalizar datos]
+    A[Webhook del CRM] --> B[Normalizar deal]
     B --> C{Importe}
     C -->|≥ 5.000 €| T[Telegram: deal VIP]
     C -->|< 5.000 €| S[Slack: deal estándar]
@@ -32,7 +32,7 @@ Al probarlo enviando deals reales al webhook, **todos acababan en el canal de re
 
 El motivo: cuando n8n recibe una petición en un webhook, el contenido no llega en la raíz, llega dentro de `body`. Mi nodo de normalización leía `$json.deal.amount`, cuando el dato real estaba en `$json.body.deal.amount`. En el editor no lo vi porque probaba con datos fijados a mano, que no llevaban ese `body`.
 
-Lo corregí y lo volví a probar con tres casos: 1.200 € (llegó a Slack), 8.000 € (llegó a Telegram) y sin importe (llegó a revisión con el ID y el nombre del cliente).
+Lo corregí para que el nodo lea el deal tanto si llega dentro de `body` (producción) como en la raíz (pruebas en el editor), y lo volví a probar con tres casos: 1.200 € (llegó a Slack), 8.000 € (llegó a Telegram) y sin importe (llegó a revisión con el ID y el nombre del cliente).
 
 Lo que me llevo: **probar el flujo como lo va a usar el sistema real**, no solo con datos de ejemplo en el editor.
 
@@ -48,6 +48,14 @@ Este flujo también está conectado al workflow global de alertas. Si, por ejemp
 
 ## Capturas
 
-![Flujo en n8n](WORKFLOW_DEAL_WORKFLOW_SCREEN.png)
-![Detalle](WORKFLOW_DEAL_WORKFLOW_SLACK_SCREEN.png)
-![Detalle](WORKFLOW_DEAL_WORKFLOW_TELEGRAM_SCREEN.png)
+**El workflow en n8n:**
+
+![Workflow de aviso de deals en n8n](capturas/p3-workflow-n8n.png)
+
+**Deal estándar en Slack** (junto a los avisos de leads de prioridad ALTA del proyecto 1):
+
+![Avisos en el canal comercial de Slack](capturas/p3-slack.png)
+
+**Deal VIP en Telegram:**
+
+![Aviso de deal VIP en Telegram](capturas/p3-telegram.png)
