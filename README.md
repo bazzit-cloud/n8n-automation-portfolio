@@ -4,7 +4,7 @@ Automatizo procesos comerciales para que ningún lead ni dato se pierda por el c
 
 **Uno de los flujos funcionando de principio a fin (40 s, sin audio):**
 
-https://github.com/user-attachments/assets/5670d18f-d02d-4a56-a29d-3ff65e593056
+https://github.com/user-attachments/assets/31c853cb-6c20-474e-9b0f-230ddd0ecb84
 
 ## Qué resuelvo
 
