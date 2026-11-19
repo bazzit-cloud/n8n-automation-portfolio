@@ -12,7 +12,7 @@ Los contactos viven en HubSpot, pero operaciones quiere tenerlos en una base de 
 2. **Pide los contactos a la API de HubSpot** (`/crm/v3/objects/contacts`), solo con los campos que necesito: email, nombre, apellido y fecha de última modificación.
 3. **Pagina:** HubSpot devuelve como máximo 100 contactos por llamada y un cursor (`paging.next.after`) para pedir los siguientes. El nodo HTTP sigue pidiendo páginas hasta que no hay más, con un tope de 50 páginas y una pausa corta entre llamadas para no chocar con el límite de la API.
 4. **Separa y renombra campos** al formato de mi tabla (`hubspot_id`, `email`, `first_name`, `last_name`, fecha).
-5. **Upsert en PostgreSQL** usando `hubspot_id` como clave: si el contacto ya existe se actualiza, si no se crea. Puedo lanzar el flujo diez veces seguidas y la tabla queda igual. Es lo que se llama idempotencia, y es lo que permite reintentar sin miedo.
+5. **Upsert en PostgreSQL** (alojado en Supabase) usando `hubspot_id` como clave: si el contacto ya existe se actualiza, si no se crea. Así el flujo se puede relanzar sin crear duplicados, y un reintento nunca ensucia la tabla.
 
 ```mermaid
 flowchart LR
@@ -26,7 +26,7 @@ flowchart LR
 
 ## Qué pasa cuando algo falla
 
-- **La API de HubSpot o la base de datos tienen un fallo puntual:** la petición se reintenta hasta 3 veces (HubSpot) o con reintentos en el nodo de base de datos.
+- **Fallo puntual de la API de HubSpot o de la base de datos:** los dos nodos reintentan solos, con 5 segundos entre intentos.
 - **Falla de verdad:** el workflow global de alertas manda un mensaje al canal `#crm-hubspot` con el nodo que ha fallado, el motivo y el enlace a la ejecución. Lo probé provocando un error real: la alerta llegó a Slack en un par de segundos.
 
 Escogí un canal propio para estos errores para que el equipo comercial no reciba ruido técnico que no le toca.
@@ -44,6 +44,10 @@ Escogí un canal propio para estos errores para que el equipo comercial no recib
 
 ## Capturas
 
-![Flujo en n8n](WORKFLOW_HUBSPOT-POSTGRE_SCREEN.png)
-![Detalle](WORKFLOW_HUBSPOT-POSTGRE_SUPA_SCREEN.png)
+**El workflow en n8n:**
 
+![Workflow de sincronización HubSpot → PostgreSQL en n8n](capturas/p2-workflow-n8n.png)
+
+**El resultado en la base de datos** (PostgreSQL en Supabase): los contactos de HubSpot guardados en la tabla `hubspot_leads`.
+
+![Contactos de HubSpot guardados en Supabase](capturas/p2-supabase.png)
