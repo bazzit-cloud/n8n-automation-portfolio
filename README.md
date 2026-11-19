@@ -4,7 +4,7 @@ Automatizo procesos comerciales para que ningún lead ni dato se pierda por el c
 
 **Uno de los flujos funcionando de principio a fin (40 s, sin audio):**
 
-[![Demo: captación de leads con IA, del formulario al aviso en Slack](media/proyecto1-demo-preview.png)](media/proyecto1-demo.mp4)
+https://github.com/user-attachments/assets/5670d18f-d02d-4a56-a29d-3ff65e593056
 
 ## Qué resuelvo
 
@@ -23,7 +23,7 @@ Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, 
 
 | | Qué resuelve | Herramientas |
 |---|---|---|
-| [**1. Captación de leads con IA**](./Proyecto_1_Captacion_Leads.md)<br/>[▶ Vídeo](media/proyecto1-demo.mp4) | Alguien rellena un formulario. El flujo limpia los datos, descarta duplicados, le pide a Gemini que puntúe el lead (ALTA / MEDIA / BAJA), lo guarda y avisa a ventas si es urgente. | Form de n8n, Gemini, Google Sheets, Slack |
+| [**1. Captación de leads con IA**](./Proyecto_1_Captacion_Leads.md) | Alguien rellena un formulario. El flujo limpia los datos, descarta duplicados, le pide a Gemini que puntúe el lead (ALTA / MEDIA / BAJA), lo guarda y avisa a ventas si es urgente. | Form de n8n, Gemini, Google Sheets, Slack |
 | [**2. HubSpot → PostgreSQL**](./Proyecto_2_HubSpot_Postgres.md) | Copia cada día los contactos de HubSpot a una base de datos propia, sin duplicados, para poder cruzarlos con otros datos. | API de HubSpot, PostgreSQL (Supabase), Slack |
 | [**3. Aviso de deals por importe**](./Proyecto_3_Routing_Alertas.md) | Recibe deals por webhook. Si superan 5.000 € avisa por Telegram; si no, por Slack. Si falta el importe, lo manda a revisión en vez de perderlo. | Webhook, Slack, Telegram |
 
