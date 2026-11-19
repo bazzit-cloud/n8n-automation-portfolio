@@ -1,6 +1,17 @@
-# Automatizaciones con n8n · Anass Bassit
+# Anass Bassit · Automatización de marketing y ventas
 
-Soy Anass. Vengo del marketing digital (dos años como Responsable SEO y experiencia comercial B2B) y llevo un tiempo automatizando lo que antes se hacía a mano: mover datos entre herramientas, clasificar leads y avisar al equipo cuando pasa algo. Lo construyo con n8n, APIs y algo de JavaScript.
+Automatizo procesos comerciales para que ningún lead ni dato se pierda por el camino y para que el equipo se entere al momento cuando algo falla.
+
+## Qué resuelvo
+
+- **Leads que se responden tarde.** Cada lead entra clasificado por prioridad y los urgentes llegan a ventas al momento.
+- **Datos del CRM dispersos o duplicados.** Los contactos se sincronizan solos con una base de datos propia, sin exportar a mano.
+- **Avisos que llegan a quien no toca.** Cada deal va al canal que le corresponde según su importe, y los incompletos van a revisión.
+- **Fallos que nadie detecta.** Si una automatización falla, el equipo recibe qué ha pasado y el enlace para arreglarlo.
+
+## Sobre mí
+
+Vengo del marketing digital (dos años como Responsable SEO y experiencia comercial B2B), así que parto del problema de negocio y no de la herramienta. Construyo las automatizaciones con n8n, APIs y algo de JavaScript.
 
 Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, en local). No son encargos de clientes: son escenarios realistas que me sirven para practicar con integraciones de verdad (Google Sheets, Gemini, HubSpot, PostgreSQL, Slack y Telegram) y, sobre todo, para aprender a que no se rompan en silencio.
 
