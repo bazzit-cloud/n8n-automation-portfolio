@@ -2,6 +2,10 @@
 
 Automatizo procesos comerciales para que ningún lead ni dato se pierda por el camino y para que el equipo se entere al momento cuando algo falla.
 
+**Uno de los flujos funcionando de principio a fin (40 s, sin audio):**
+
+[![Demo: captación de leads con IA, del formulario al aviso en Slack](media/proyecto1-demo-preview.png)](media/proyecto1-demo.mp4)
+
 ## Qué resuelvo
 
 - **Leads que se responden tarde.** Cada lead entra clasificado por prioridad y los urgentes llegan a ventas al momento.
@@ -19,11 +23,11 @@ Este repositorio recoge tres proyectos que he montado en mi propio n8n (Docker, 
 
 | | Qué resuelve | Herramientas |
 |---|---|---|
-| [**1. Captación de leads con IA**](./Proyecto_1_Captacion_Leads.md) | Alguien rellena un formulario. El flujo limpia los datos, descarta duplicados, le pide a Gemini que puntúe el lead (ALTA / MEDIA / BAJA), lo guarda y avisa a ventas si es urgente. | Form de n8n, Gemini, Google Sheets, Slack |
+| [**1. Captación de leads con IA**](./Proyecto_1_Captacion_Leads.md)<br/>[▶ Vídeo](media/proyecto1-demo.mp4) | Alguien rellena un formulario. El flujo limpia los datos, descarta duplicados, le pide a Gemini que puntúe el lead (ALTA / MEDIA / BAJA), lo guarda y avisa a ventas si es urgente. | Form de n8n, Gemini, Google Sheets, Slack |
 | [**2. HubSpot → PostgreSQL**](./Proyecto_2_HubSpot_Postgres.md) | Copia cada día los contactos de HubSpot a una base de datos propia, sin duplicados, para poder cruzarlos con otros datos. | API de HubSpot, PostgreSQL (Supabase), Slack |
 | [**3. Aviso de deals por importe**](./Proyecto_3_Routing_Alertas.md) | Recibe deals por webhook. Si superan 5.000 € avisa por Telegram; si no, por Slack. Si falta el importe, lo manda a revisión en vez de perderlo. | Webhook, Slack, Telegram |
 
-Los JSON de los cuatro workflows están en [`/workflows`](./workflows), sin datos privados, para importarlos en cualquier n8n. Cada proyecto incluye capturas del flujo ejecutándose y de su resultado (Sheets, Supabase, Slack y Telegram).
+Los JSON de los cuatro workflows están en [`/workflows`](./workflows), sin datos privados, para importarlos en cualquier n8n. Cada proyecto incluye capturas del flujo ejecutándose y de su resultado (Sheets, Supabase, Slack y Telegram), y el primero tiene además un vídeo de la ejecución completa con un lead de prueba.
 
 Los tres comparten un **workflow de alertas**: si cualquiera falla, llega un mensaje a Slack con el workflow, el nodo que ha fallado, el motivo y un enlace directo a la ejecución.
 

@@ -1,6 +1,10 @@
 # Proyecto 1 · Captación y clasificación de leads con IA
 
-[← Volver al inicio](./README.md) · [JSON](./workflows/01-captacion-leads.json)
+[← Volver al inicio](./README.md) · [JSON](./workflows/01-captacion-leads.json) · [Vídeo](./media/proyecto1-demo.mp4)
+
+[![Demo en vídeo: un lead entra por el formulario, Gemini lo clasifica, se guarda en Sheets y avisa a ventas en Slack](media/proyecto1-demo-preview.png)](media/proyecto1-demo.mp4)
+
+*Ejecución real en mi n8n local con un lead de prueba (40 s, sin audio).*
 
 ## El escenario
 
