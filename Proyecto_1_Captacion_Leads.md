@@ -57,5 +57,5 @@ La primera versión funcionaba en el caso feliz, pero tenía huecos que solo vi 
 
 ## Capturas
 
-![Workflow en n8n](WORKFLOW_CAPTACION_LEADS_PHOTO.png)
-![Workflow en n8n (Google sheets)](WORKFLOW_CAPTACION_LEADS_PHOTO_SHEETS.png) 
+![Workflow en n8n](WORKFLOW_CAPTACION_LEADS_SCREEN.png)
+![Workflow en n8n (Google sheets)](WORKFLOW_CAPTACION_LEADS_SHEETS_SCREEN.png) 
