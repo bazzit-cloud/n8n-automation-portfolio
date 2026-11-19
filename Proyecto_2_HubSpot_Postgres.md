@@ -44,6 +44,6 @@ Escogí un canal propio para estos errores para que el equipo comercial no recib
 
 ## Capturas
 
-![Flujo en n8n](WORKFLOW_HUBSPOT_POSTGRESQL_PHOTO.png)
-![Detalle](WORKFLOW_HUBSPOT_POSTGRESGL_SUPA_PHOTO.png)
+![Flujo en n8n](WORKFLOW_HUBSPOT-POSTGRE_SCREEN.png)
+![Detalle](WORKFLOW_HUBSPOT-POSTGRE_SUPA_SCREEN.png)
 
