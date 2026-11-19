@@ -1,6 +1,6 @@
 # Proyecto 1 · Captación y clasificación de leads con IA
 
-[← Volver al inicio](./README.md) · [Ver el workflow en directo](https://bazzit-cloud.github.io/n8n-automation-portfolio/#p1) · [JSON](./workflows/01-captacion-leads.json)
+[← Volver al inicio](./README.md) · [JSON](./workflows/01-captacion-leads.json)
 
 ## El escenario
 
@@ -14,7 +14,7 @@ Quería que eso pasara solo y que, cuando algo fallase, se enterase alguien.
 2. **Preparar datos:** quito espacios y paso el email a minúsculas. Parece un detalle, pero sin esto `Ana@Mail.com` y `ana@mail.com ` cuentan como dos clientes distintos.
 3. **Duplicados:** busco el email en la hoja. Si ya existe, el flujo se para ahí. Lo hago **antes** de llamar a la IA para no pagar por clasificar a alguien que ya tengo.
 4. **Clasificación con Gemini:** la IA lee el mensaje y responde con una palabra: `ALTA`, `MEDIA` o `BAJA`. El texto del cliente va delimitado y el prompt deja claro que es contenido, no instrucciones, para que nadie pueda «darle órdenes» a la IA desde el formulario.
-5. **Limpiar la respuesta:** un modelo de lenguaje no siempre contesta exactamente lo que le pides («Alta.», «ALTA» con un salto de línea…). Normalizo la respuesta y, si no es una de las tres palabras, el lead se marca como `REVISAR`.
+5. **Normalizar la calificación:** un modelo de lenguaje no siempre contesta exactamente lo que le pides («Alta.», «ALTA» con un salto de línea…). Normalizo la respuesta y, si no es una de las tres palabras, el lead se marca como `REVISAR`.
 6. **Guardar y avisar:** todos los leads acaban en Google Sheets. Los de prioridad `ALTA` además generan un aviso en el canal comercial de Slack. Los que la IA no ha podido clasificar avisan a operaciones.
 
 ```mermaid
@@ -23,7 +23,7 @@ flowchart LR
     B --> C{¿Email ya existe?}
     C -->|sí| D[Fin, no se duplica]
     C -->|no| E[Gemini clasifica<br/>3 intentos]
-    E --> F[Limpiar respuesta]
+    E --> F[Normalizar calificación]
     F --> G{Calificación}
     G -->|ALTA| H[Guardar + aviso a ventas]
     G -->|MEDIA / BAJA| I[Guardar]
@@ -57,5 +57,10 @@ La primera versión funcionaba en el caso feliz, pero tenía huecos que solo vi 
 
 ## Capturas
 
-![Workflow en n8n](WORKFLOW_CAPTACION_LEADS_SCREEN.png)
-![Workflow en n8n (Google sheets)](WORKFLOW_CAPTACION_LEADS_SHEETS_SCREEN.png) 
+**El workflow en n8n**, con los nombres de cada paso:
+
+![Workflow de captación de leads en n8n](capturas/p1-workflow-n8n.png)
+
+**El resultado en Google Sheets:** cada lead registrado con la fecha y la calificación que ha asignado Gemini.
+
+![Leads clasificados en Google Sheets](capturas/p1-google-sheets.png)
