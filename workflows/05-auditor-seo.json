@@ -1,0 +1,303 @@
+{
+  "name": "Auditor SEO técnico por sitemap",
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "auditor-seo",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "name": "Cada lunes 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Parámetros de la petición",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Uso bajo demanda: ?web=dominio.com  (opcional: &max=50 &formato=html &sitemap=URL)\nconst q = $input.first().json.query || {};\nlet web = String(q.web || q.sitemap || '').trim();\nif (!web) throw new Error('Falta la web: añade ?web=dominio.com a la URL');\nif (!/^https?:\\/\\//i.test(web)) web = 'https://' + web;\nreturn [{ json: {\n  modo: 'bajo demanda',\n  web: web.match(/^https?:\\/\\/[^\\/]+/i)[0],\n  sitemap: /\\.xml(\\?|$)/i.test(web) ? web : (q.sitemap || ''),\n  max: Math.min(Math.max(Number(q.max) || 50, 1), 300),\n  formato: String(q.formato || 'json').toLowerCase()\n} }];"
+      }
+    },
+    {
+      "name": "Webs vigiladas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        220
+      ],
+      "parameters": {
+        "jsCode": "// Webs que se vigilan cada lunes. Una línea por cliente: web, máximo de páginas y canal de Slack donde avisar.\nconst CLIENTES = [\n  { web: 'https://www.ejemplo.com', max: 60, canal: 'TU_CANAL_CLIENTE' },\n  // { web: 'https://otrocliente.com', max: 100, canal: 'ID_DEL_CANAL' },\n];\nreturn CLIENTES.map(c => ({ json: { modo: 'vigilancia', formato: 'json', sitemap: '', ...c } }));"
+      }
+    },
+    {
+      "name": "Auditar web",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        110
+      ],
+      "parameters": {
+        "jsCode": "// Auditar web: recibe una o varias webs y devuelve un informe por cada una.\n// Todo va en un nodo para que el flujo sea corto: rastreo, análisis, priorización y comparación con la semana anterior.\n\nconst CONCURRENCIA = 4;          // páginas que se descargan a la vez\nconst TIMEOUT_MS = 15000;        // tiempo máximo por petición\nconst PRESUPUESTO_MS = 150000;   // tiempo máximo por web (protege frente a webs enormes)\nconst UA = 'Mozilla/5.0 (compatible; AuditorSEO-n8n/1.0)';\n\n// ---------- Catálogo de problemas: gravedad, por qué importa y cómo se arregla ----------\nconst CATALOGO = {\n  web_inaccesible:      ['critico', 'La web no responde', 'Si no carga para la auditoría, tampoco carga para Google ni para los clientes.', 'Revisar hosting, DNS y certificado SSL.'],\n  robots_bloquea_todo:  ['critico', 'El robots.txt bloquea todo el sitio', 'Google no puede rastrear ninguna página: la web irá desapareciendo de los resultados.', 'Quitar \"Disallow: /\" del bloque \"User-agent: *\".'],\n  noindex:              ['critico', 'Páginas del sitemap marcadas con noindex', 'Se pide a Google que las indexe (sitemap) y a la vez que no (noindex). Si es la home, la web deja de aparecer.', 'Quitar el noindex o sacar esas URLs del sitemap.'],\n  error_http:           ['critico', 'URLs del sitemap con error 4xx/5xx', 'El usuario ve un error y Google gasta rastreo en páginas rotas.', 'Arreglar la página o quitarla del sitemap y redirigirla con un 301.'],\n  sin_respuesta:        ['importante', 'URLs que no responden a tiempo', 'Una página que tarda más de 15 s o se cae no se rastrea ni se indexa bien.', 'Revisar servidor, caché y plugins pesados.'],\n  respuesta_incompleta: ['importante', 'HTML incompleto', 'Si la página llega cortada, Google puede no ver el contenido ni las etiquetas.', 'Buscar errores del servidor o del tema que cortan la página.'],\n  sitemap_no_encontrado:['importante', 'No hay sitemap accesible', 'Google descubre peor las páginas nuevas o profundas. Solo se ha podido revisar la home.', 'Generar sitemap.xml y declararlo en robots.txt y en Search Console.'],\n  redirige:             ['importante', 'URLs del sitemap que redirigen', 'El sitemap debe listar solo URLs finales: cada redirección gasta rastreo.', 'Poner en el sitemap la URL de destino.'],\n  canonical_otra:       ['importante', 'Canonical apuntando a otra URL', 'Se le dice a Google que la página buena es otra, así que esta no posicionará.', 'Canonical a sí misma, salvo duplicados intencionados.'],\n  nap_distinto:         ['importante', 'Teléfono o dirección del schema distintos a la home', 'Datos de contacto contradictorios restan confianza en búsquedas locales y en Google Maps.', 'Un único bloque de negocio con los datos reales en toda la web.'],\n  sin_title:            ['importante', 'Páginas sin title', 'Es lo primero que se ve en Google y una de las señales de relevancia más fuertes.', 'Title único de 30–60 caracteres con la búsqueda principal.'],\n  title_duplicado:      ['importante', 'Titles duplicados', 'Google no sabe qué página mostrar para cada búsqueda y se pisan entre ellas.', 'Un title distinto en cada página.'],\n  sin_h1:               ['importante', 'Páginas sin H1', 'El H1 le dice a Google y al usuario de qué trata la página.', 'Un H1 visible con el tema principal de la página.'],\n  sin_meta:             ['recomendacion', 'Páginas sin meta description', 'Google se inventa el texto del resultado y suele atraer menos clics.', 'Meta de 140–155 caracteres que invite a entrar.'],\n  meta_duplicada:       ['recomendacion', 'Meta descriptions duplicadas', 'Resultados iguales en Google para páginas distintas: menos clics.', 'Una meta distinta en cada página.'],\n  meta_longitud:        ['recomendacion', 'Meta description demasiado corta o larga', 'Por debajo de 70 caracteres se queda pobre; por encima de 160, Google la corta.', 'Ajustar a 140–155 caracteres.'],\n  title_longitud:       ['recomendacion', 'Title demasiado corto o largo', 'Corto desaprovecha espacio; largo, Google lo corta y puede reescribirlo.', 'Ajustar a 30–60 caracteres.'],\n  varios_h1:            ['recomendacion', 'Varios H1 en la misma página', 'Diluye el tema principal de la página.', 'Dejar un H1 y pasar el resto a H2.'],\n  sin_alt:              ['recomendacion', 'Imágenes sin texto alternativo', 'Accesibilidad y posicionamiento en Google Imágenes.', 'Alt descriptivo; alt vacío solo en imágenes decorativas.'],\n  bots_ia:              ['recomendacion', 'Bloquea a los buscadores de IA', 'ChatGPT, Perplexity o Claude no podrán leer ni citar la web.', 'Permitir sus bots de búsqueda si interesa aparecer en respuestas de IA.'],\n  sin_llms:             ['recomendacion', 'No hay llms.txt', 'Ayuda a los asistentes de IA a entender el negocio y sus páginas clave.', 'Publicar /llms.txt con descripción, contacto y enlaces principales.'],\n  sitemap_fuera_robots: ['recomendacion', 'El robots.txt no declara el sitemap', 'Es la forma estándar de que cualquier buscador lo encuentre.', 'Añadir la línea \"Sitemap: https://…/sitemap.xml\".']\n};\nconst ORDEN = { critico: 0, importante: 1, recomendacion: 2 };\nconst PESO = { critico: 30, importante: 12, recomendacion: 4 };\n\n// ---------- Utilidades ----------\nconst pedir = async (url, seguirRedirecciones = true) => {\n  for (let intento = 1; intento <= 2; intento++) {\n    try {\n      const r = await this.helpers.httpRequest({\n        url, method: 'GET', returnFullResponse: true, json: false, encoding: 'utf8',\n        ignoreHttpStatusErrors: true, timeout: TIMEOUT_MS, disableFollowRedirect: !seguirRedirecciones,\n        headers: { 'User-Agent': UA }\n      });\n      const body = typeof r.body === 'string' ? r.body : (r.body ? String(r.body) : '');\n      return { status: r.statusCode, body, headers: r.headers || {} };\n    } catch (e) {\n      if (intento === 2) return { status: 0, body: '', headers: {}, error: String(e.message || e).slice(0, 120) };\n    }\n  }\n};\nconst enParalelo = async (lista, n, fn) => {\n  const salida = new Array(lista.length); let i = 0;\n  await Promise.all(Array.from({ length: Math.min(n, lista.length) }, async () => {\n    while (i < lista.length) { const k = i++; salida[k] = await fn(lista[k], k); }\n  }));\n  return salida;\n};\nconst limpiar = s => (s || '').replace(/<script[\\s\\S]*?<\\/script>|<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&ndash;/g, '–').replace(/&#39;|&#039;/g, \"'\").replace(/&quot;/g, '\"').replace(/\\s+/g, ' ').trim();\nconst meta = (html, nombre) => ((html.match(new RegExp(`<meta[^>]+name=[\"']${nombre}[\"'][^>]*content=[\"']([^\"']*)[\"']`, 'i'))\n  || html.match(new RegExp(`<meta[^>]+content=[\"']([^\"']*)[\"'][^>]*name=[\"']${nombre}[\"']`, 'i')) || [])[1] || '').trim();\nconst sinBarra = u => (u || '').toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/$/, '');\nconst normDir = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');\nconst locs = (xml, etiqueta) => [...xml.matchAll(new RegExp(`<${etiqueta}>\\\\s*<loc>([^<]+)</loc>`, 'g'))].map(m => m[1].trim().replace(/&amp;/g, '&'));\nconst esHtml = u => !/\\.(md|txt|xml|json|pdf|jpe?g|png|webp|gif|svg|zip)(\\?|$)/i.test(u);\n\nfunction analizarHtml(url, html) {\n  const title = limpiar((html.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i) || [])[1]);\n  const desc = meta(html, 'description');\n  const robots = meta(html, 'robots').toLowerCase();\n  const canonical = (html.match(/<link[^>]+rel=[\"']canonical[\"'][^>]*href=[\"']([^\"']*)[\"']/i) || html.match(/<link[^>]+href=[\"']([^\"']*)[\"'][^>]*rel=[\"']canonical[\"']/i) || [])[1] || '';\n  const h1s = [...html.matchAll(/<h1[^>]*>([\\s\\S]*?)<\\/h1>/gi)].map(m => limpiar(m[1]));\n  const imgs = [...html.matchAll(/<img\\b[^>]*>/gi)].map(m => m[0]);\n  const sinAlt = imgs.filter(t => !/\\balt=[\"'][^\"']+[\"']/i.test(t)).length;\n  const nodos = [...html.matchAll(/<script[^>]+application\\/ld\\+json[^>]*>([\\s\\S]*?)<\\/script>/gi)]\n    .map(m => { try { return JSON.parse(m[1]); } catch (e) { return null; } }).filter(Boolean)\n    .flatMap(b => [].concat(b['@graph'] || b));\n  const tels = [...new Set(nodos.map(n => String(n.telephone || n.telePhone || '').replace(/\\D/g, '')).filter(Boolean))];\n  const dirs = [...new Set(nodos.map(n => n.address && n.address.streetAddress).filter(Boolean))];\n  return { title, desc, robots, canonical, h1s, imgs: imgs.length, sinAlt, tels, dirs, incompleta: html.length > 500 && !/<\\/html>/i.test(html.slice(-3000)) };\n}\n\n// ---------- Auditoría de una web ----------\nasync function auditar(cfg) {\n  const inicio = Date.now();\n  const notas = [];\n  const problemasPorId = {};\n  const anota = (id, url, detalle) => {\n    const p = problemasPorId[id] || (problemasPorId[id] = { id, paginas: [], detalles: [] });\n    if (url && !p.paginas.includes(url)) { p.paginas.push(url); if (detalle) p.detalles.push(detalle); }\n  };\n\n  let origen = cfg.web.match(/^https?:\\/\\/[^\\/]+/i)[0];\n  const home = await pedir(origen + '/');\n  if (!home.status || home.status >= 500) {\n    anota('web_inaccesible');\n    return { origen, inicio, paginas: [], problemasPorId, notas: [`La home respondió ${home.status ? 'HTTP ' + home.status : 'con error: ' + (home.error || 'sin respuesta')}`], sitio: {}, total: 0 };\n  }\n\n  // robots.txt y llms.txt\n  const robots = await pedir(origen + '/robots.txt');\n  const botsIA = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended'];\n  const bloqueados = new Set(); let bloqueaTodo = false, agentes = [], enReglas = false;\n  if (robots.status === 200) {\n    for (const linea of robots.body.split(/\\r?\\n/)) {\n      const l = linea.replace(/#.*/, '').trim(); if (!l.includes(':')) continue;\n      const clave = l.slice(0, l.indexOf(':')).trim().toLowerCase(), valor = l.slice(l.indexOf(':') + 1).trim();\n      if (clave === 'user-agent') { if (enReglas) { agentes = []; enReglas = false; } agentes.push(valor.toLowerCase()); continue; }\n      enReglas = true;\n      if (clave === 'disallow' && valor === '/') { if (agentes.includes('*')) bloqueaTodo = true; botsIA.forEach(b => { if (agentes.includes(b.toLowerCase())) bloqueados.add(b); }); }\n    }\n  }\n  const llms = await pedir(origen + '/llms.txt');\n  const sitio = {\n    robotsTxt: robots.status === 200,\n    sitemapEnRobots: /^\\s*sitemap:/mi.test(robots.body),\n    robotsBloqueaTodo: bloqueaTodo,\n    botsIABloqueados: [...bloqueados],\n    llmsTxt: llms.status === 200 && !/<html/i.test(llms.body.slice(0, 500))\n  };\n  if (bloqueaTodo) anota('robots_bloquea_todo');\n  if (bloqueados.size) anota('bots_ia');\n  if (!sitio.llmsTxt) anota('sin_llms');\n  if (sitio.robotsTxt && !sitio.sitemapEnRobots) anota('sitemap_fuera_robots');\n\n  // Sitemap: el indicado, el de robots.txt o las rutas típicas. Si es un índice, entra en cada sitemap hijo.\n  const esSitemap = r => r.status === 200 && /<(urlset|sitemapindex)[\\s>]/i.test(r.body);\n  let sitemapUrl = cfg.sitemap || '', raiz = null;\n  const candidatos = [sitemapUrl, ...[...robots.body.matchAll(/^\\s*sitemap:\\s*(\\S+)/gim)].map(m => m[1]), origen + '/sitemap.xml', origen + '/sitemap_index.xml', origen + '/wp-sitemap.xml'].filter(Boolean);\n  for (const c of [...new Set(candidatos)]) { const r = await pedir(c); if (esSitemap(r)) { sitemapUrl = c; raiz = r; break; } }\n  const grupos = [];\n  if (raiz) {\n    origen = sitemapUrl.match(/^https?:\\/\\/[^\\/]+/i)[0];\n    const hijos = locs(raiz.body, 'sitemap').filter(u => !/^https?:\\/\\/[^\\/]+\\/(en|fr|de|pt|it|ca)\\//i.test(u));\n    if (hijos.length) {\n      for (const h of hijos.slice(0, 30)) {\n        const r = await pedir(h);\n        if (esSitemap(r)) grupos.push({ sitemap: h.replace(origen, ''), urls: locs(r.body, 'url').filter(esHtml) });\n        else notas.push(`Sitemap hijo no válido: ${h}`);\n      }\n    } else grupos.push({ sitemap: sitemapUrl.replace(origen, ''), urls: locs(raiz.body, 'url').filter(esHtml) });\n  } else {\n    anota('sitemap_no_encontrado');\n    if (cfg.sitemap) notas.push(`El sitemap indicado no es válido: ${cfg.sitemap}`);\n  }\n  const total = grupos.reduce((a, g) => a + g.urls.length, 0);\n\n  // Muestra equilibrada (una URL de cada sitemap por turnos), empezando por la home\n  const homeUrl = (grupos.flatMap(g => g.urls).find(u => sinBarra(u) === sinBarra(origen)) || origen + '/');\n  const seleccion = new Set([homeUrl]);\n  for (let i = 0; seleccion.size < cfg.max && grupos.some(g => g.urls.length > i); i++)\n    for (const g of grupos) if (g.urls[i] && seleccion.size < cfg.max) seleccion.add(g.urls[i]);\n  if (total > seleccion.size) notas.push(`Muestra de ${seleccion.size} de ${total} URLs del sitemap (límite: ${cfg.max}).`);\n\n  // Descarga y análisis en paralelo, con tiempo máximo\n  const paginas = await enParalelo([...seleccion], CONCURRENCIA, async (url) => {\n    if (Date.now() - inicio > PRESUPUESTO_MS) return { url, omitida: true };\n    const r = await pedir(url, false);\n    const p = { url, status: r.status };\n    if (r.status >= 300 && r.status < 400) { p.destino = r.headers.location || ''; return p; }\n    if (!r.status) { p.error = r.error; return p; }\n    if (r.status >= 400) return p;\n    return { ...p, ...analizarHtml(url, r.body) };\n  });\n  const omitidas = paginas.filter(p => p.omitida).length;\n  if (omitidas) notas.push(`Auditoría parcial: ${omitidas} URLs sin revisar por límite de tiempo (${PRESUPUESTO_MS / 1000} s).`);\n  const revisadas = paginas.filter(p => !p.omitida);\n\n  // Reglas por página\n  const homeP = revisadas.find(p => p.url === homeUrl) || {};\n  const refTel = (homeP.tels || [])[0], refDir = normDir((homeP.dirs || [])[0]);\n  for (const p of revisadas) {\n    if (!p.status) { anota('sin_respuesta', p.url, p.error); continue; }\n    if (p.status >= 400) { anota('error_http', p.url, `HTTP ${p.status}`); continue; }\n    if (p.status >= 300) { anota('redirige', p.url, `→ ${p.destino}`); continue; }\n    if (p.incompleta) anota('respuesta_incompleta', p.url);\n    if (p.robots.includes('noindex')) anota('noindex', p.url, p.url === homeUrl ? 'ES LA HOME' : '');\n    if (!p.title) anota('sin_title', p.url); else if (p.title.length > 65 || p.title.length < 30) anota('title_longitud', p.url, `${p.title.length} caracteres`);\n    if (!p.desc) anota('sin_meta', p.url); else if (p.desc.length < 70 || p.desc.length > 160) anota('meta_longitud', p.url, `${p.desc.length} caracteres`);\n    if (!p.h1s.length) anota('sin_h1', p.url); else if (p.h1s.length > 1) anota('varios_h1', p.url, `${p.h1s.length} H1`);\n    if (p.canonical && sinBarra(p.canonical) !== sinBarra(p.url)) anota('canonical_otra', p.url, `→ ${p.canonical}`);\n    if (p.sinAlt) anota('sin_alt', p.url, `${p.sinAlt}/${p.imgs}`);\n    const telMal = refTel && p.tels.some(t => t.slice(-9) !== refTel.slice(-9));\n    const dirMal = refDir && p.dirs.some(d => normDir(d) !== refDir);\n    if (telMal || dirMal) anota('nap_distinto', p.url, [...p.tels, ...p.dirs].join(' · '));\n  }\n  // Duplicados\n  const dup = (campo, id) => {\n    const m = {}; revisadas.forEach(p => { if (p[campo]) (m[p[campo]] = m[p[campo]] || []).push(p.url); });\n    Object.entries(m).filter(([, u]) => u.length > 1).forEach(([v, us]) => us.forEach(u => anota(id, u, `\"${v.slice(0, 60)}\"`)));\n  };\n  dup('title', 'title_duplicado'); dup('desc', 'meta_duplicada');\n\n  return { origen, inicio, paginas: revisadas, problemasPorId, notas, sitio, total, sitemapUrl, grupos, homeUrl };\n}\n\n// ---------- Ejecutar para cada web y montar el resultado ----------\nconst salida = [];\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vigilancia = memoria.vigilancia || {};\nfor (const item of $input.all()) {\n  const cfg = item.json;\n  const a = await auditar(cfg);\n  const dominio = a.origen.replace(/^https?:\\/\\//, '');\n  const revisadas = a.paginas.length || 1;\n\n  const problemas = Object.values(a.problemasPorId).map(p => {\n    const [nivel, titulo, porque, solucion] = CATALOGO[p.id];\n    return { id: p.id, nivel, titulo, porque, solucion, afectadas: p.paginas.length, ejemplos: p.paginas.slice(0, 3).map((u, i) => u.replace(a.origen, '') + (p.detalles[i] ? ` (${p.detalles[i]})` : '')) };\n  }).sort((x, y) => ORDEN[x.nivel] - ORDEN[y.nivel] || y.afectadas - x.afectadas);\n\n  // Nota: cada tipo de problema resta según su gravedad y el % de páginas afectadas\n  let nota = 100;\n  for (const p of problemas) nota -= PESO[p.nivel] * (p.afectadas ? Math.min(1, 0.3 + 0.7 * p.afectadas / revisadas) : 1);\n  nota = a.problemasPorId.web_inaccesible ? 0 : Math.max(0, Math.round(nota));\n  const cuenta = n => problemas.filter(p => p.nivel === n).length;\n\n  const porUrl = {};\n  Object.values(a.problemasPorId).forEach(p => p.paginas.forEach(u => (porUrl[u] = porUrl[u] || []).push(p.id)));\n  const paginas = a.paginas.map(p => ({\n    url: p.url, status: p.status || 0,\n    problemas: (porUrl[p.url] || []).sort((x, y) => ORDEN[CATALOGO[x][0]] - ORDEN[CATALOGO[y][0]]).map(id => ({ nivel: CATALOGO[id][0], titulo: CATALOGO[id][1] })),\n    title: p.title || ''\n  })).sort((x, y) => (y.problemas.filter(q => q.nivel !== 'recomendacion').length - x.problemas.filter(q => q.nivel !== 'recomendacion').length) || (y.problemas.length - x.problemas.length));\n\n  // Vigilancia: qué ha cambiado desde la semana anterior\n  const vigilando = cfg.modo === 'vigilancia';\n  const anterior = vigilando ? memoria.vigilancia[dominio] : undefined;\n  const actuales = Object.fromEntries(problemas.map(p => [p.id, p.afectadas]));\n  const nuevos = anterior ? problemas.filter(p => !(p.id in anterior.problemas) || (p.nivel === 'critico' && p.afectadas > anterior.problemas[p.id])) : [];\n  const resueltos = anterior ? Object.keys(anterior.problemas).filter(id => !(id in actuales)).map(id => CATALOGO[id][1]) : [];\n  if (vigilando) memoria.vigilancia[dominio] = { fecha: new Date().toISOString().slice(0, 10), nota, problemas: actuales };\n\n  const icono = { critico: '🔴', importante: '🟠', recomendacion: '🔵' };\n  let mensaje = '';\n  if (vigilando) {\n    if (!anterior) mensaje = `*Vigilancia SEO · ${dominio}*\\nPrimera revisión: nota *${nota}/100* · ${cuenta('critico')} críticos, ${cuenta('importante')} importantes, ${cuenta('recomendacion')} recomendaciones. A partir de ahora solo aviso de cambios.`;\n    else if (nuevos.length || nota <= anterior.nota - 5) mensaje = `*Vigilancia SEO · ${dominio}*\\nNota *${nota}/100* (semana anterior: ${anterior.nota})\\n\\n*Nuevo:*\\n${nuevos.map(p => `${icono[p.nivel]} ${p.titulo} — ${p.afectadas || 'todo el sitio'}${p.afectadas ? ' páginas' : ''}\\n      ej.: ${p.ejemplos[0] || dominio}`).join('\\n') || '—'}${resueltos.length ? `\\n\\n*Resuelto:* ${resueltos.join(', ')}` : ''}`;\n  }\n\n  salida.push({ json: {\n    modo: cfg.modo, formato: cfg.formato, canal: cfg.canal || '', web: cfg.web, dominio, origen: a.origen,\n    fecha: new Date().toISOString().slice(0, 10), segundos: Math.round((Date.now() - a.inicio) / 1000),\n    nota, nivel: nota >= 85 ? 'Bien' : nota >= 65 ? 'Mejorable' : 'Necesita trabajo',\n    criticos: cuenta('critico'), importantes: cuenta('importante'), recomendaciones: cuenta('recomendacion'),\n    revisadas: a.paginas.length, urlsEnSitemap: a.total, sitemap: a.sitemapUrl || null,\n    sitio: a.sitio, problemas, paginas, notas: a.notas,\n    hayAlertas: Boolean(mensaje), mensajeSlack: mensaje\n  } });\n}\nreturn salida;\n"
+      },
+      "notes": "Why Code: rastreo en paralelo con límites de tiempo, reintentos y reglas SEO en un solo paso."
+    },
+    {
+      "name": "¿Petición bajo demanda?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        110
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.modo }}",
+              "rightValue": "bajo demanda",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Preparar informe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Devuelve el informe en JSON o en HTML según ?formato=\nconst r = $input.first().json;\nif (r.formato !== 'html') return [{ json: { body: JSON.stringify(r, null, 2), contentType: 'application/json; charset=utf-8' } }];\n\nconst e = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst NIVEL = { critico: ['Crítico', 'c'], importante: ['Importante', 'i'], recomendacion: ['Recomendación', 'r'] };\nconst colorNota = r.nota >= 85 ? 'bien' : r.nota >= 65 ? 'med' : 'mal';\nconst si = ok => ok ? '<span class=\"ok\">Sí</span>' : '<span class=\"ko\">No</span>';\n\nconst prioridades = r.problemas.map((p, i) => `<tr>\n<td class=\"n\">${i + 1}</td><td><span class=\"tag ${NIVEL[p.nivel][1]}\">${NIVEL[p.nivel][0]}</span></td>\n<td><b>${e(p.titulo)}</b><div class=\"g\">${p.ejemplos.map(e).join('<br>')}</div></td>\n<td class=\"n\">${p.afectadas || 'sitio'}</td><td>${e(p.porque)}</td><td>${e(p.solucion)}</td></tr>`).join('')\n  || '<tr><td colspan=\"6\" class=\"g\">No se ha encontrado ningún problema.</td></tr>';\n\nconst urls = r.paginas.map((p, i) => `<tr><td class=\"n g\">${i + 1}</td>\n<td><a href=\"${e(p.url)}\" target=\"_blank\">${e(p.url.replace(r.origen, '') || '/')}</a><div class=\"g\">${e(p.title)}</div></td>\n<td class=\"n\">${p.status || '—'}</td>\n<td>${p.problemas.map(q => `<span class=\"dot ${NIVEL[q.nivel][1]}\"></span>${e(q.titulo)}`).join('<br>') || '<span class=\"g\">Sin problemas</span>'}</td></tr>`).join('');\n\nconst html = `<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><title>${e(r.dominio)} – auditoría SEO</title>\n<style>body{margin:0;font:13px/1.45 Arial,Helvetica,sans-serif;color:#222;background:#fff}\n.top{background:#24292f;color:#fff;padding:10px 24px;display:flex;justify-content:space-between;font-size:12px}.top b{font-size:14px}\n.w{padding:20px 24px;max-width:1200px}h1{font-size:21px;font-weight:normal;margin:0}h1 b{font-weight:bold}.sub{color:#666;margin:3px 0 18px}\nh2{font-size:14px;margin:26px 0 8px;padding-bottom:4px;border-bottom:2px solid #24292f}\n.res{display:flex;gap:0;border:1px solid #d0d7de;width:fit-content}.res div{padding:10px 22px;border-right:1px solid #d0d7de}.res div:last-child{border:0}\n.res b{display:block;font-size:30px}.res span{font-size:12px;color:#555}\ntable{border-collapse:collapse;width:100%}td,th{border:1px solid #d0d7de;padding:6px 8px;vertical-align:top;text-align:left}th{background:#f6f8fa}\ntr:nth-child(even) td{background:#fafbfc}.n{text-align:right;white-space:nowrap}.g{color:#777;font-size:12px}\n.bien{color:#1a7f37}.med{color:#b35900}.mal{color:#cf222e}.ok{color:#1a7f37;font-weight:bold}.ko{color:#cf222e;font-weight:bold}\n.tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:11px;font-weight:bold;white-space:nowrap}.tag.c{background:#ffebe9;color:#cf222e}.tag.i{background:#fff1e5;color:#b35900}.tag.r{background:#ddf4ff;color:#0550ae}\n.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.dot.c{background:#cf222e}.dot.i{background:#e16f24}.dot.r{background:#218bff}\n.cols{display:flex;gap:28px;flex-wrap:wrap}.cols>div{flex:1;min-width:300px}a{color:#0550ae}.pie{color:#888;font-size:11px;margin-top:22px}</style></head><body>\n<div class=\"top\"><b>Auditor SEO técnico</b><span>Anass Bassit · ${r.fecha}</span></div>\n<div class=\"w\"><h1>Auditoría de <b>${e(r.dominio)}</b></h1>\n<div class=\"sub\">${r.revisadas} páginas revisadas${r.urlsEnSitemap ? ` de ${r.urlsEnSitemap} URLs en el sitemap` : ''} · ${r.segundos} s</div>\n<div class=\"res\"><div><b class=\"${colorNota}\">${r.nota}</b><span>de 100 · ${e(r.nivel)}</span></div>\n<div><b class=\"mal\">${r.criticos}</b><span>críticos</span></div><div><b class=\"med\">${r.importantes}</b><span>importantes</span></div><div><b style=\"color:#0550ae\">${r.recomendaciones}</b><span>recomendaciones</span></div></div>\n<h2>Qué arreglar primero</h2>\n<table><tr><th style=\"width:24px\">#</th><th style=\"width:95px\">Gravedad</th><th style=\"width:26%\">Problema y ejemplos</th><th style=\"width:60px\">Páginas</th><th>Por qué importa</th><th>Cómo solucionarlo</th></tr>${prioridades}</table>\n<div class=\"cols\"><div><h2>Sitio</h2><table>\n<tr><td>robots.txt</td><td class=\"n\">${si(r.sitio.robotsTxt)}</td></tr>\n<tr><td>Sitemap encontrado</td><td class=\"n\">${si(r.sitemap)}</td></tr>\n<tr><td>Sitemap declarado en robots.txt</td><td class=\"n\">${si(r.sitio.sitemapEnRobots)}</td></tr>\n<tr><td>Permite rastrear el sitio</td><td class=\"n\">${si(!r.sitio.robotsBloqueaTodo)}</td></tr>\n<tr><td>Permite buscadores de IA</td><td class=\"n\">${si(!(r.sitio.botsIABloqueados || []).length)}</td></tr>\n<tr><td>llms.txt</td><td class=\"n\">${si(r.sitio.llmsTxt)}</td></tr></table></div>\n<div><h2>Notas de la revisión</h2><div class=\"g\" style=\"font-size:13px\">${r.notas.map(e).join('<br>') || 'Revisión completa, sin incidencias.'}</div></div></div>\n<h2>Páginas revisadas</h2><table><tr><th style=\"width:28px\">#</th><th style=\"width:42%\">URL</th><th style=\"width:50px\">HTTP</th><th>Problemas</th></tr>${urls}</table>\n<div class=\"pie\">Flujo propio en n8n. Revisa estado HTTP, redirecciones, noindex, title, meta description, H1, canonical, alt, schema/NAP, robots.txt y llms.txt.</div>\n</div></body></html>`;\nreturn [{ json: { body: html, contentType: 'text/html; charset=utf-8' } }];\n"
+      }
+    },
+    {
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        0
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "={{ $json.contentType }}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "¿Hay alertas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.hayAlertas }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Aviso al canal del cliente",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1160,
+        220
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.canal }}"
+        },
+        "text": "={{ $json.mensajeSlack }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parámetros de la petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cada lunes 8:00": {
+      "main": [
+        [
+          {
+            "node": "Webs vigiladas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parámetros de la petición": {
+      "main": [
+        [
+          {
+            "node": "Auditar web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webs vigiladas": {
+      "main": [
+        [
+          {
+            "node": "Auditar web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar web": {
+      "main": [
+        [
+          {
+            "node": "¿Petición bajo demanda?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Petición bajo demanda?": {
+      "main": [
+        [
+          {
+            "node": "Preparar informe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Hay alertas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar informe": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay alertas?": {
+      "main": [
+        [
+          {
+            "node": "Aviso al canal del cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
