@@ -2,6 +2,8 @@
 
 Automatizo procesos de marketing, ventas y SEO para que ningún lead ni dato se pierda por el camino y para que el equipo se entere al momento cuando algo falla.
 
+*In English: I automate marketing, sales and SEO processes so no lead or data point gets lost, and the team finds out immediately when something breaks. Below are four n8n projects — AI-based lead scoring, a HubSpot → PostgreSQL sync, deal routing by value, and a technical SEO auditor — each with the real production bugs I found and how I fixed them. Currently looking for automation / integrations / RevOps-Marketing Ops roles in Madrid.*
+
 **Auditor SEO técnico: le paso un dominio y me dice qué falla, por qué importa y cómo arreglarlo (30 s, sin audio):**
 
 https://github.com/user-attachments/assets/3e86041c-9d4a-472d-b70e-939cdb691550
@@ -31,7 +33,48 @@ Este repositorio recoge cuatro proyectos que he montado en mi propio n8n (Docker
 
 Los JSON de los cinco workflows están en [`/workflows`](./workflows), sin datos privados, para importarlos en cualquier n8n. Cada proyecto incluye capturas del flujo ejecutándose y de su resultado (Sheets, Supabase, Slack y Telegram), y el primero y el cuarto tienen además un vídeo de la ejecución completa.
 
+## Capturas
+
+**1. Captación de leads con IA** — el flujo y el resultado en Sheets
+
+<p>
+<img src="capturas/p1-workflow-n8n.png" width="420" alt="Workflow de captación de leads en n8n">
+<img src="capturas/p1-google-sheets.png" width="420" alt="Leads clasificados en Google Sheets">
+</p>
+
+**2. HubSpot → PostgreSQL** — el flujo y los contactos ya sincronizados en Supabase
+
+<p>
+<img src="capturas/p2-workflow-n8n.png" width="420" alt="Workflow de sincronización HubSpot a PostgreSQL">
+<img src="capturas/p2-supabase.png" width="420" alt="Contactos sincronizados en Supabase">
+</p>
+
+**3. Aviso de deals por importe** — el flujo y los avisos en Slack y Telegram
+
+<p>
+<img src="capturas/p3-workflow-n8n.png" width="420" alt="Workflow de routing de deals por importe">
+<img src="capturas/p3-slack.png" width="204" alt="Aviso de deal en Slack">
+<img src="capturas/p3-telegram.png" width="204" alt="Aviso de deal en Telegram">
+</p>
+
+**4. Auditor SEO técnico** — el flujo y el informe generado, con los problemas priorizados
+
+<p>
+<img src="capturas/p4-workflow-n8n.png" width="420" alt="Workflow del auditor SEO técnico">
+<img src="capturas/p4-informe.png" width="204" alt="Informe del auditor SEO con problemas priorizados">
+<img src="capturas/p4-paginas.png" width="204" alt="Detalle por página del auditor SEO">
+</p>
+
 Todos comparten un **workflow de alertas**: si cualquiera falla, llega un mensaje a Slack con el workflow, el nodo que ha fallado, el motivo y un enlace directo a la ejecución.
+
+```mermaid
+flowchart LR
+    A[1. Leads] -->|error| E[Workflow de alertas]
+    B[2. HubSpot → Postgres] -->|error| E
+    C[3. Routing de deals] -->|error| E
+    D[4. Auditor SEO] -->|error| E
+    E --> S["Slack: workflow + nodo que falló + motivo + enlace a la ejecución"]
+```
 
 ## Cómo trabajo
 
